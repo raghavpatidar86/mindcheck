@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MindCheck – Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root {
+  --p: #6C63FF; --p2: #8B85FF; --p3: #4A42CC;
+  --acc: #FF6584; --green: #10B981;
+  --bg: #F4F5FF; --bg2: #EEEEFF;
+  --card: #FFFFFF; --text: #1A1A2E;
+  --muted: #6B7280; --border: #E5E7EB;
+  --sh: 0 4px 30px rgba(108,99,255,0.1);
+  --sh2: 0 12px 40px rgba(108,99,255,0.22);
+  --r: 18px; --r2: 12px;
+  --ease: cubic-bezier(0.4,0,0.2,1);
+}
+[data-theme="dark"] {
+  --bg: #080812; --bg2: #0F0F1E; --card: #13132A;
+  --text: #EEEEFF; --muted: #9CA3AF; --border: #252540;
+  --sh: 0 4px 30px rgba(0,0,0,0.5);
+  --sh2: 0 12px 40px rgba(108,99,255,0.35);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:16px}
+body{
+  font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);
+  min-height:100vh;overflow-x:hidden;transition:background .4s,color .4s;
+  display:flex;align-items:center;justify-content:center;cursor:none;
+}
+
+/* Custom Cursor */
+#cursor{position:fixed;width:12px;height:12px;background:var(--p);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .2s,height .2s,background .2s,opacity .2s;mix-blend-mode:multiply}
+[data-theme="dark"] #cursor{mix-blend-mode:screen}
+#cursor-ring{position:fixed;width:36px;height:36px;border:1.5px solid rgba(108,99,255,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width .35s var(--ease),height .35s var(--ease),opacity .3s}
+body:hover #cursor{opacity:1}
+.cursor-grow #cursor{width:22px;height:22px;opacity:.7}
+.cursor-grow #cursor-ring{width:50px;height:50px;opacity:.4}
+
+/* 3D Canvas */
+#bgCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.45}
+[data-theme="dark"] #bgCanvas{opacity:.65}
+
+/* Login Card */
+.login-wrapper{position:relative;z-index:1;width:100%;max-width:440px;padding:1.5rem}
+.login-card{
+  background:var(--card);border-radius:var(--r);padding:2.5rem 2rem;
+  box-shadow:var(--sh2);border:1px solid var(--border);
+  position:relative;overflow:hidden;
+  animation:cardPop .6s var(--ease) both;
+}
+.login-card::before{
+  content:'';position:absolute;inset:0;border-radius:var(--r);
+  background:linear-gradient(135deg,rgba(108,99,255,.05) 0%,transparent 60%);
+  pointer-events:none;
+}
+@keyframes cardPop{from{opacity:0;transform:scale(.92) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+/* Brand */
+.login-brand{display:flex;align-items:center;gap:.7rem;justify-content:center;margin-bottom:.4rem}
+.nav-logo{width:42px;height:42px;animation:logoBob 3s ease-in-out infinite}
+@keyframes logoBob{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-4px) rotate(3deg)}}
+.brand-name{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.4rem;color:var(--p);letter-spacing:-.5px}
+.login-subtitle{text-align:center;color:var(--muted);font-size:.88rem;margin-bottom:1.8rem}
+
+/* Form */
+.form-group{margin-bottom:1.1rem}
+.form-label{display:block;font-weight:600;font-size:.84rem;color:var(--text);margin-bottom:.35rem}
+.form-input{
+  width:100%;padding:.75rem 1rem;border:1.5px solid var(--border);border-radius:var(--r2);
+  background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.9rem;
+  outline:none;transition:border .25s,box-shadow .25s,background .25s;cursor:none;
+}
+.form-input:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(108,99,255,.12);background:var(--card)}
+.form-input::placeholder{color:var(--muted)}
+.form-input.error{border-color:#EF4444;box-shadow:0 0 0 3px rgba(239,68,68,.12)}
+
+.form-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.3rem}
+.remember-label{display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:var(--muted);cursor:pointer}
+.remember-label input{accent-color:var(--p);cursor:pointer}
+.forgot-link{font-size:.82rem;color:var(--p);text-decoration:none;font-weight:600;transition:color .2s}
+.forgot-link:hover{color:var(--p3);text-decoration:underline}
+
+.btn-login{
+  width:100%;padding:.85rem;background:linear-gradient(135deg,var(--p),var(--p3));
+  color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;
+  font-weight:900;font-size:1rem;cursor:none;letter-spacing:.3px;
+  transition:transform .25s,box-shadow .25s,opacity .25s;position:relative;overflow:hidden;
+}
+.btn-login::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.18) 50%,transparent 70%);
+  transform:translateX(-100%);transition:.6s;
+}
+.btn-login:hover::after{transform:translateX(100%)}
+.btn-login:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(108,99,255,.4)}
+.btn-login:active{transform:translateY(0)}
+.btn-login.loading{pointer-events:none;opacity:.8}
+.btn-login.loading::before{
+  content:'';display:inline-block;width:14px;height:14px;
+  border:2px solid rgba(255,255,255,.4);border-top-color:#fff;
+  border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.divider{display:flex;align-items:center;gap:.8rem;margin:1.4rem 0;color:var(--muted);font-size:.8rem}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.signup-text{text-align:center;font-size:.85rem;color:var(--muted);margin-top:.2rem}
+.signup-link{color:var(--p);font-weight:700;text-decoration:none;transition:color .2s}
+.signup-link:hover{color:var(--p3);text-decoration:underline}
+
+.error-msg{
+  background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--r2);
+  padding:.6rem .9rem;font-size:.82rem;color:#7F1D1D;text-align:center;
+  margin-bottom:1rem;display:none;animation:shake .4s ease;
+}
+[data-theme="dark"] .error-msg{background:#2D1515;border-color:#7F1D1D;color:#FCA5A5}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+.success-msg{
+  background:#F0FDF4;border:1px solid #BBF7D0;border-radius:var(--r2);
+  padding:.6rem .9rem;font-size:.82rem;color:#065F46;text-align:center;
+  margin-bottom:1rem;display:none;
+}
+[data-theme="dark"] .success-msg{background:#0D2B1F;border-color:#065F46;color:#6EE7B7}
+
+/* Theme toggle */
+.theme-toggle{position:fixed;top:1.2rem;right:1.5rem;z-index:100}
+.theme-btn{
+  width:42px;height:24px;border-radius:12px;border:none;cursor:none;
+  background:var(--border);position:relative;transition:background .3s;
+}
+.theme-btn.dark-mode{background:var(--p)}
+.theme-btn::after{
+  content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;
+  border-radius:50%;background:white;transition:transform .3s var(--ease);
+  box-shadow:0 1px 4px rgba(0,0,0,.2);
+}
+.theme-btn.dark-mode::after{transform:translateX(18px)}
+
+/* Floating decorations */
+.deco{position:fixed;pointer-events:none;z-index:0;opacity:.5}
+.deco-1{top:10%;left:5%;animation:float1 6s ease-in-out infinite}
+.deco-2{bottom:10%;right:5%;animation:float2 7s ease-in-out infinite}
+.deco-3{top:50%;right:12%;animation:float1 5s ease-in-out infinite;animation-delay:-2s}
+@keyframes float1{0%,100%{transform:translateY(0)}50%{transform:translateY(-20px)}}
+@keyframes float2{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-15px) rotate(5deg)}}
+
+@media(max-width:768px){
+  body{cursor:auto;padding:1rem}
+  #cursor,#cursor-ring{display:none}
+  .login-card{padding:2rem 1.5rem}
+  .deco{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<canvas id="bgCanvas"></canvas>
+
+<div class="theme-toggle">
+  <button class="theme-btn" id="themeBtn" title="Toggle theme"></button>
+</div>
+
+<!-- Floating SVG decorations -->
+<svg class="deco deco-1" width="120" height="120" viewBox="0 0 120 120" fill="none">
+  <circle cx="60" cy="60" r="50" stroke="#6C63FF" stroke-width="1.5" stroke-opacity=".2"/>
+  <circle cx="60" cy="60" r="30" fill="#6C63FF" fill-opacity=".06"/>
+</svg>
+<svg class="deco deco-2" width="100" height="100" viewBox="0 0 100 100" fill="none">
+  <rect x="10" y="10" width="80" height="80" rx="20" stroke="#FF6584" stroke-width="1.5" stroke-opacity=".2"/>
+  <rect x="25" y="25" width="50" height="50" rx="12" fill="#FF6584" fill-opacity=".06"/>
+</svg>
+<svg class="deco deco-3" width="80" height="80" viewBox="0 0 80 80" fill="none">
+  <polygon points="40,5 75,65 5,65" stroke="#6C63FF" stroke-width="1.5" stroke-opacity=".2" fill="#6C63FF" fill-opacity=".04"/>
+</svg>
+
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-brand">
+      <svg class="nav-logo" viewBox="0 0 40 40" fill="none">
+        <circle cx="20" cy="20" r="19" stroke="#6C63FF" stroke-width="2"/>
+        <path d="M14 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#6C63FF" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="20" cy="14" r="2" fill="#6C63FF"/>
+        <path d="M12 26c1.5-2 4.5-3 8-3s6.5 1 8 3" stroke="#6C63FF" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span class="brand-name">MindCheck</span>
+    </div>
+    <p class="login-subtitle">Sign in to access your stress assessment</p>
+
+    <div class="error-msg" id="errorMsg"></div>
+    <div class="success-msg" id="successMsg"></div>
+
+    <form id="loginForm" autocomplete="off">
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <input class="form-input" type="text" id="username" placeholder="Enter your username" required/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-input" type="password" id="password" placeholder="Enter your password" required/>
+      </div>
+      <div class="form-row">
+        <label class="remember-label"><input type="checkbox" id="remember"/> Remember me</label>
+        <a href="#" class="forgot-link">Forgot password?</a>
+      </div>
+      <button type="submit" class="btn-login" id="loginBtn">Sign In</button>
+    </form>
+
+    <div class="divider">or</div>
+    <p class="signup-text">Don't have an account? <a href="/register" class="signup-link">Sign Up</a></p>
+  </div>
+</div>
+
+<script>
+/* Custom Cursor */
+const cur=document.getElementById('cursor'),curRing=document.getElementById('cursor-ring');
+let cx=0,cy=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{cx=e.clientX;cy=e.clientY});
+function animCursor(){
+  rx+=(cx-rx)*.18;ry+=(cy-ry)*.18;
+  if(cur){cur.style.left=cx+'px';cur.style.top=cy+'px'}
+  if(curRing){curRing.style.left=rx+'px';curRing.style.top=ry+'px'}
+  requestAnimationFrame(animCursor);
+}
+animCursor();
+document.querySelectorAll('a,button,input,.forgot-link,.signup-link').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('cursor-grow'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('cursor-grow'));
+});
+
+/* Theme */
+(function(){
+  const btn=document.getElementById('themeBtn');
+  const saved=localStorage.getItem('mc-theme')||'light';
+  document.documentElement.setAttribute('data-theme',saved);
+  if(saved==='dark')btn.classList.add('dark-mode');
+  btn.addEventListener('click',()=>{
+    const cur=document.documentElement.getAttribute('data-theme');
+    const next=cur==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    localStorage.setItem('mc-theme',next);
+    btn.classList.toggle('dark-mode',next==='dark');
+  });
+})();
+
+/* Three.js Background */
+(function(){
+  if(typeof THREE==='undefined')return;
+  const canvas=document.getElementById('bgCanvas');
+  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,300);
+  camera.position.z=35;
+  const N=120,pts=[],pPos=new Float32Array(N*3),pVel=[];
+  for(let i=0;i<N;i++){
+    const x=(Math.random()-.5)*100,y=(Math.random()-.5)*70,z=(Math.random()-.5)*50;
+    pPos[i*3]=x;pPos[i*3+1]=y;pPos[i*3+2]=z;
+    pts.push(new THREE.Vector3(x,y,z));
+    pVel.push({x:(Math.random()-.5)*.04,y:(Math.random()-.5)*.04,z:(Math.random()-.5)*.02});
+  }
+  const pGeo=new THREE.BufferGeometry();
+  pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+  scene.add(new THREE.Points(pGeo,new THREE.PointsMaterial({color:0x6C63FF,size:.4,transparent:true,opacity:.7})));
+  const maxL=200,lPos=new Float32Array(maxL*6),lGeo=new THREE.BufferGeometry();
+  lGeo.setAttribute('position',new THREE.BufferAttribute(lPos,3));
+  scene.add(new THREE.LineSegments(lGeo,new THREE.LineBasicMaterial({color:0x6C63FF,transparent:true,opacity:.08})));
+  [0x6C63FF,0xFF6584,0x43E97B].forEach((col,i)=>{
+    const g=new THREE.TorusGeometry(4+i*2,.08,8,80);
+    const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.1}));
+    m.position.set((Math.random()-.5)*60,(Math.random()-.5)*40,(Math.random()-.5)*20);
+    m.rotation.set(Math.random()*Math.PI,Math.random()*Math.PI,0);
+    m.userData={rx:(Math.random()-.5)*.004,ry:(Math.random()-.5)*.005};
+    scene.add(m);
+  });
+  let mx=0,my=0;
+  window.addEventListener('mousemove',e=>{mx=(e.clientX/innerWidth-.5)*2;my=-(e.clientY/innerHeight-.5)*2});
+  window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+  function animate(){
+    requestAnimationFrame(animate);
+    for(let i=0;i<N;i++){
+      pts[i].x+=pVel[i].x;pts[i].y+=pVel[i].y;pts[i].z+=pVel[i].z;
+      if(Math.abs(pts[i].x)>50)pVel[i].x*=-1;
+      if(Math.abs(pts[i].y)>35)pVel[i].y*=-1;
+      if(Math.abs(pts[i].z)>25)pVel[i].z*=-1;
+      pPos[i*3]=pts[i].x;pPos[i*3+1]=pts[i].y;pPos[i*3+2]=pts[i].z;
+    }
+    pGeo.attributes.position.needsUpdate=true;
+    let li=0;
+    for(let i=0;i<N&&li<maxL-1;i++)for(let j=i+1;j<N&&li<maxL-1;j++){
+      if(pts[i].distanceTo(pts[j])<15){
+        lPos[li*6]=pts[i].x;lPos[li*6+1]=pts[i].y;lPos[li*6+2]=pts[i].z;
+        lPos[li*6+3]=pts[j].x;lPos[li*6+4]=pts[j].y;lPos[li*6+5]=pts[j].z;
+        li++;
+      }
+    }
+    lGeo.attributes.position.needsUpdate=true;lGeo.setDrawRange(0,li*2);
+    camera.position.x+=(mx*3-camera.position.x)*.025;
+    camera.position.y+=(my*2-camera.position.y)*.025;
+    camera.lookAt(scene.position);renderer.render(scene,camera);
+  }
+  animate();
+})();
+
+/* Login Form */
+document.getElementById('loginForm').addEventListener('submit',function(e){
+  e.preventDefault();
+  const btn=document.getElementById('loginBtn');
+  const user=document.getElementById('username').value.trim();
+  const pass=document.getElementById('password').value.trim();
+  const errEl=document.getElementById('errorMsg');
+  const sucEl=document.getElementById('successMsg');
+  errEl.style.display='none';sucEl.style.display='none';
+
+  if(!user||!pass){
+    errEl.textContent='Please fill in all fields.';errEl.style.display='block';return;
+  }
+  btn.classList.add('loading');btn.textContent=' Signing in...';
+
+  fetch('/login',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:user,password:pass})
+  })
+  .then(r=>r.json())
+  .then(data=>{
+    btn.classList.remove('loading');
+    if(data.success){
+      sucEl.textContent='Login successful! Redirecting...';sucEl.style.display='block';
+      btn.textContent='Welcome!';btn.style.background='#10B981';
+      setTimeout(()=>window.location.href='/',1200);
+    } else {
+      errEl.textContent=data.message||'Invalid credentials.';errEl.style.display='block';
+      btn.textContent='Sign In';
+      document.getElementById('password').classList.add('error');
+      setTimeout(()=>document.getElementById('password').classList.remove('error'),2500);
+    }
+  })
+  .catch(()=>{
+    btn.classList.remove('loading');btn.textContent='Sign In';
+    errEl.textContent='Server error. Please try again.';errEl.style.display='block';
+  });
+});
+</script>
+</body>
+</html>

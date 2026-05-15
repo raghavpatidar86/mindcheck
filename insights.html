@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MindCheck – Wellness Insights</title>
+<meta name="description" content="Your personalized stress insights and wellness journey dashboard."/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<style>
+:root{--p:#6C63FF;--p2:#8B85FF;--p3:#4A42CC;--acc:#FF6584;--green:#10B981;--yellow:#F59E0B;--red:#EF4444;--bg:#F4F5FF;--bg2:#EEEEFF;--card:#FFFFFF;--text:#1A1A2E;--muted:#6B7280;--border:#E5E7EB;--sh:0 4px 30px rgba(108,99,255,0.1);--sh2:0 12px 40px rgba(108,99,255,0.22);--r:18px;--r2:12px;--ease:cubic-bezier(0.4,0,0.2,1)}
+[data-theme="dark"]{--bg:#080812;--bg2:#0F0F1E;--card:#13132A;--text:#EEEEFF;--muted:#9CA3AF;--border:#252540;--sh:0 4px 30px rgba(0,0,0,0.5);--sh2:0 12px 40px rgba(108,99,255,0.35)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background .4s,color .4s}
+#bgCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.45}
+[data-theme="dark"] #bgCanvas{opacity:.65}
+.navbar{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;gap:1.5rem;padding:.9rem 2.5rem;background:rgba(255,255,255,0.75);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(108,99,255,0.1);box-shadow:0 2px 20px rgba(108,99,255,0.06);transition:background .4s}
+[data-theme="dark"] .navbar{background:rgba(8,8,18,0.8)}
+.nav-brand{display:flex;align-items:center;gap:.7rem;min-width:170px;text-decoration:none}
+.nav-logo{width:38px;height:38px;flex-shrink:0;animation:logoBob 3s ease-in-out infinite}
+@keyframes logoBob{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-4px) rotate(3deg)}}
+.brand-name{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.2rem;color:var(--p);letter-spacing:-.5px;line-height:1}
+.brand-tag{font-size:.65rem;color:var(--muted);letter-spacing:.3px}
+.nav-links{display:flex;list-style:none;gap:.15rem;flex:1;justify-content:center}
+.nav-link{text-decoration:none;color:var(--muted);font-weight:500;font-size:.88rem;padding:.4rem .85rem;border-radius:8px;transition:color .25s,background .25s;position:relative}
+.nav-link::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%) scaleX(0);width:60%;height:2px;background:var(--p);border-radius:2px;transition:transform .25s var(--ease)}
+.nav-link:hover,.nav-link.active{color:var(--p);background:rgba(108,99,255,0.07)}
+.nav-link.active::after,.nav-link:hover::after{transform:translateX(-50%) scaleX(1)}
+.nav-right{display:flex;align-items:center;gap:.8rem;min-width:240px;justify-content:flex-end}
+.theme-btn{width:42px;height:24px;border-radius:12px;border:none;cursor:pointer;background:var(--border);position:relative;transition:background .3s;flex-shrink:0}
+.theme-btn.dark-mode{background:var(--p)}
+.theme-btn::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform .3s var(--ease);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.theme-btn.dark-mode::after{transform:translateX(18px)}
+.btn-primary{background:var(--p);color:#fff;border:none;border-radius:var(--r2);padding:.5rem 1.1rem;font-family:'Nunito',sans-serif;font-weight:800;font-size:.82rem;cursor:pointer;white-space:nowrap;transition:background .25s,transform .25s;text-decoration:none}
+.btn-primary:hover{background:var(--p3);transform:translateY(-1px)}
+
+/* ── NAV AVATAR PROFILE BUTTON ── */
+.nav-avatar-btn{display:inline-flex;align-items:center;gap:.5rem;text-decoration:none;padding:.3rem .7rem .3rem .3rem;border-radius:99px;border:1.5px solid var(--border);background:var(--card);transition:border-color .25s,box-shadow .25s,transform .25s,background .25s;position:relative;cursor:pointer}
+.nav-avatar-btn:hover{border-color:var(--p);box-shadow:0 4px 14px rgba(108,99,255,.2);transform:translateY(-1px);background:rgba(108,99,255,.04)}
+.nav-avatar-ring{width:30px;height:30px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--p),var(--acc));padding:2px}
+.nav-avatar-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;background:var(--bg2);display:flex;align-items:center;justify-content:center}
+.nav-avatar-inner img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+#navAvatarInitials{font-family:'Nunito',sans-serif;font-weight:900;font-size:.7rem;color:var(--p);line-height:1}
+.nav-avatar-label{font-family:'Nunito',sans-serif;font-weight:700;font-size:.8rem;color:var(--text);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-online-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 0 2px rgba(16,185,129,.25)}
+
+/* Hero */
+.hero{position:relative;text-align:center;padding:7rem 2rem 2.5rem;z-index:1;overflow:hidden}
+.hero-badge{display:inline-flex;align-items:center;gap:.4rem;background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);color:var(--p);font-size:.78rem;font-weight:700;padding:.35rem .9rem;border-radius:99px;margin-bottom:1rem;animation:pop .6s var(--ease) .2s both}
+@keyframes pop{from{opacity:0;transform:scale(.8) translateY(-10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.hero-title{font-family:'Nunito',sans-serif;font-size:clamp(2rem,5vw,3rem);font-weight:900;letter-spacing:-1.5px;line-height:1.1;animation:slideUp .7s var(--ease) .3s both}
+.hero-title span{background:linear-gradient(135deg,var(--p),var(--acc));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.hero-sub{color:var(--muted);font-size:1rem;margin-top:.5rem;animation:slideUp .7s var(--ease) .45s both}
+
+/* Dashboard Grid */
+.dashboard{max-width:1100px;margin:0 auto 3rem;padding:0 2rem;display:grid;grid-template-columns:1fr 1fr;gap:1.4rem;position:relative;z-index:1}
+.card{background:var(--card);border-radius:var(--r);padding:1.6rem;box-shadow:var(--sh);border:1px solid var(--border);transition:box-shadow .3s,border-color .3s,transform .3s;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;inset:0;border-radius:var(--r);background:linear-gradient(135deg,rgba(108,99,255,.03) 0%,transparent 60%);pointer-events:none}
+.card:hover{box-shadow:var(--sh2);border-color:rgba(108,99,255,.25);transform:translateY(-3px)}
+.card-full{grid-column:1/-1}
+.card-header{display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem}
+.card-icon{width:42px;height:42px;background:linear-gradient(135deg,rgba(108,99,255,.15),rgba(108,99,255,.05));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.card-title{font-family:'Nunito',sans-serif;font-weight:800;font-size:1.05rem}
+.card-subtitle{font-size:.78rem;color:var(--muted);margin-top:1px}
+
+/* Trend */
+.trend-row{display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap}
+.trend-icon{font-size:2.8rem;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.trend-label{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.6rem}
+.trend-improving{color:var(--green)}.trend-worsening{color:var(--red)}.trend-stable{color:var(--yellow)}
+.trend-meta{font-size:.85rem;color:var(--muted)}
+
+/* Summary */
+.summary-text{font-size:.95rem;line-height:1.7;color:var(--text)}
+
+/* Stressors */
+.stressor-pills{display:flex;gap:.7rem;flex-wrap:wrap}
+.stressor-pill{display:flex;align-items:center;gap:.5rem;padding:.6rem 1.1rem;border-radius:99px;font-weight:700;font-size:.82rem;border:1.5px solid var(--border);background:var(--bg);transition:all .3s}
+.stressor-pill:hover{border-color:var(--p);background:rgba(108,99,255,.06);transform:translateY(-2px)}
+.stressor-rank{width:22px;height:22px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800}
+
+/* Chart */
+#chartCanvas{width:100%;height:220px;border-radius:var(--r2)}
+
+/* Recommendations */
+.rec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.rec-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:1.2rem;transition:all .3s;text-align:center}
+.rec-card:hover{border-color:var(--p);transform:translateY(-4px);box-shadow:var(--sh2)}
+.rec-icon{font-size:2rem;display:block;margin-bottom:.5rem}
+.rec-title{font-family:'Nunito',sans-serif;font-weight:800;font-size:.88rem;color:var(--p);margin-bottom:.4rem}
+.rec-detail{font-size:.78rem;color:var(--muted);line-height:1.55}
+
+/* Motivation */
+.motivation-banner{background:linear-gradient(135deg,var(--p),var(--p3));border-radius:var(--r);padding:2rem;text-align:center;color:#fff;position:relative;overflow:hidden}
+.motivation-banner::before{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.08) 50%,transparent 70%);animation:shimmer 3s infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.motivation-text{font-family:'Nunito',sans-serif;font-weight:700;font-size:1.1rem;line-height:1.6;position:relative;z-index:1}
+.motivation-emoji{font-size:2rem;display:block;margin-bottom:.6rem}
+
+/* Empty State */
+.empty-state{text-align:center;padding:3rem 1rem}
+.empty-icon{font-size:4rem;display:block;margin-bottom:1rem;animation:pulse 2s ease-in-out infinite}
+.empty-title{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.3rem;margin-bottom:.5rem}
+.empty-desc{color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;max-width:400px;margin-left:auto;margin-right:auto;line-height:1.6}
+.empty-btn{display:inline-block;background:linear-gradient(135deg,var(--p),var(--p3));color:#fff;border:none;border-radius:var(--r2);padding:.8rem 2rem;font-family:'Nunito',sans-serif;font-weight:800;font-size:.95rem;text-decoration:none;transition:transform .25s,box-shadow .25s}
+.empty-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(108,99,255,.4)}
+
+/* Score badge */
+.score-badge{display:inline-flex;align-items:center;gap:.4rem;padding:.4rem 1rem;border-radius:99px;font-weight:800;font-size:.9rem}
+.score-low{background:rgba(16,185,129,.12);color:var(--green)}
+.score-moderate{background:rgba(245,158,11,.12);color:var(--yellow)}
+.score-high{background:rgba(239,68,68,.12);color:var(--red)}
+
+/* Footer */
+.footer{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.6rem 2.5rem;border-top:1px solid var(--border);background:var(--card);flex-wrap:wrap}
+.footer-logo{font-size:.95rem;color:var(--p);font-family:'Nunito',sans-serif;font-weight:800}
+.footer-copy{font-size:.78rem;color:var(--muted)}
+
+/* Loading */
+.loading-spinner{display:flex;align-items:center;justify-content:center;padding:3rem}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--p);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* AI Advice */
+.ai-advice-btn{display:flex;align-items:center;justify-content:center;gap:.6rem;width:100%;margin-top:1.2rem;padding:.9rem 1.5rem;background:linear-gradient(135deg,#6C63FF,#4A42CC);color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;font-weight:800;font-size:.92rem;cursor:pointer;transition:transform .25s,box-shadow .25s;position:relative;overflow:hidden}
+.ai-advice-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.15) 50%,transparent 70%);transform:translateX(-100%);transition:.6s}
+.ai-advice-btn:hover::after{transform:translateX(100%)}
+.ai-advice-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(108,99,255,.4)}
+.ai-advice-btn:disabled{opacity:.7;cursor:not-allowed;transform:none}
+.ai-advice-btn .ai-spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+.ai-response{margin-top:1.2rem;background:linear-gradient(135deg,rgba(108,99,255,.04),rgba(108,99,255,.01));border:1px solid rgba(108,99,255,.15);border-radius:var(--r2);padding:1.4rem;display:none;animation:cardPop .5s var(--ease) both}
+@keyframes cardPop{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.ai-response-header{display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem;font-family:'Nunito',sans-serif;font-weight:800;font-size:.95rem;color:var(--p)}
+.ai-response-header .ai-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.5s ease-in-out infinite}
+.ai-response-body{font-size:.88rem;line-height:1.75;color:var(--text);white-space:pre-wrap}
+.ai-response-body strong{color:var(--p)}
+.ai-cursor{display:inline-block;width:2px;height:1em;background:var(--p);margin-left:2px;animation:blink .7s step-end infinite;vertical-align:text-bottom}
+@keyframes blink{50%{opacity:0}}
+.ai-error{margin-top:1rem;padding:.7rem 1rem;background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--r2);color:#7F1D1D;font-size:.82rem;text-align:center;display:none}
+[data-theme="dark"] .ai-error{background:#2D1515;border-color:#7F1D1D;color:#FCA5A5}
+
+/* Reveal */
+.reveal{opacity:0;transform:translateY(25px)}
+
+@media(max-width:768px){
+  .navbar{padding:.7rem 1rem;flex-wrap:wrap}.nav-links{display:none}
+  .dashboard{grid-template-columns:1fr}
+  .rec-grid{grid-template-columns:1fr}
+  .footer{flex-direction:column;text-align:center}
+  .hero-title{font-size:1.8rem}
+}
+</style>
+</head>
+<body>
+
+<!-- 3D Background Canvas -->
+<canvas id="bgCanvas"></canvas>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <a class="nav-brand" href="/">
+    <svg class="nav-logo" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="19" stroke="#6C63FF" stroke-width="2"/><path d="M14 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#6C63FF" stroke-width="2" stroke-linecap="round"/><circle cx="20" cy="14" r="2" fill="#6C63FF"/><path d="M12 26c1.5-2 4.5-3 8-3s6.5 1 8 3" stroke="#6C63FF" stroke-width="2" stroke-linecap="round"/></svg>
+    <div><div class="brand-name">MindCheck</div><div class="brand-tag">Understand. Manage. Thrive.</div></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/" class="nav-link">Home</a></li>
+    <li><a href="/#check-stress" class="nav-link">Check Stress</a></li>
+    <li><a href="/insights" class="nav-link active">Insights</a></li>
+  </ul>
+  <div class="nav-right">
+    <button class="theme-btn" id="themeBtn" title="Toggle theme"></button>
+    <a href="/" class="btn-primary">Take Assessment</a>
+    <a href="/profile" class="nav-avatar-btn" id="navProfileBtn" title="My Profile">
+      <div class="nav-avatar-ring">
+        <div class="nav-avatar-inner" id="navAvatarInner">
+          <span id="navAvatarInitials">?</span>
+        </div>
+      </div>
+      <span class="nav-avatar-label" id="navAvatarLabel">Profile</span>
+      <span class="nav-online-dot"></span>
+    </a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">✨ AI Wellness Companion</div>
+  <h1 class="hero-title">Your <span>Wellness</span> Journey</h1>
+  <p class="hero-sub">Personalized insights powered by your stress assessment history</p>
+</section>
+
+<!-- DASHBOARD -->
+<div class="dashboard" id="dashboard">
+  <div class="loading-spinner" id="loadingState" style="grid-column:1/-1"><div class="spinner"></div></div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div><div class="footer-logo">🧠 MindCheck</div></div>
+  <div class="footer-copy">© 2024 MindCheck. All rights reserved.</div>
+</footer>
+
+<script>
+/* Theme */
+(function(){
+  const btn=document.getElementById('themeBtn');
+  const saved=localStorage.getItem('mc-theme')||'light';
+  document.documentElement.setAttribute('data-theme',saved);
+  if(saved==='dark')btn.classList.add('dark-mode');
+  btn.addEventListener('click',()=>{
+    const cur=document.documentElement.getAttribute('data-theme');
+    const next=cur==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    localStorage.setItem('mc-theme',next);
+    btn.classList.toggle('dark-mode',next==='dark');
+    if(window._chartData) drawChart(window._chartData);
+  });
+})();
+
+/* ── NAV AVATAR: fetch profile and populate ── */
+(async function loadNavAvatar(){
+  try{
+    const res=await fetch('/api/profile');
+    if(!res.ok)return;
+    const u=await res.json();
+    if(u.error)return;
+    const initials=((u.first_name||'').charAt(0)+(u.last_name||'').charAt(0)).toUpperCase()||'?';
+    const labelEl=document.getElementById('navAvatarLabel');
+    const initialsEl=document.getElementById('navAvatarInitials');
+    const innerEl=document.getElementById('navAvatarInner');
+    if(labelEl) labelEl.textContent=u.first_name||u.username||'Profile';
+    if(u.avatar_url&&innerEl){
+      innerEl.innerHTML=`<img src="${u.avatar_url}" alt="avatar" onerror="this.parentNode.innerHTML='<span style=font-family:Nunito,sans-serif;font-weight:900;font-size:.7rem;color:var(--p)>${initials}</span>'">`;
+    } else if(initialsEl){
+      initialsEl.textContent=initials;
+    }
+  }catch(e){}
+})();
+
+
+document.addEventListener('DOMContentLoaded',async()=>{
+  const dash=document.getElementById('dashboard');
+  try{
+    const [insRes,histRes]=await Promise.all([fetch('/api/insights'),fetch('/api/history')]);
+    const insights=await insRes.json();
+    const histData=await histRes.json();
+    dash.innerHTML='';
+    if(insights.empty){renderEmpty(dash,insights);return;}
+    window._chartData=histData.history||[];
+    renderDashboard(dash,insights,histData.history||[]);
+    animateReveal();
+  }catch(e){
+    dash.innerHTML='<div class="card card-full"><div class="empty-state"><span class="empty-icon">⚠️</span><h2 class="empty-title">Connection Error</h2><p class="empty-desc">Could not load your insights. Please make sure the server is running.</p><a href="/insights" class="empty-btn">Retry</a></div></div>';
+  }
+});
+
+function renderEmpty(el,data){
+  el.innerHTML=`<div class="card card-full"><div class="empty-state">
+    <span class="empty-icon">🌱</span>
+    <h2 class="empty-title">Start Your Wellness Journey</h2>
+    <p class="empty-desc">${data.summary||'Take your first stress assessment to unlock personalized insights, trend analysis, and tailored recommendations.'}</p>
+    <a href="/" class="empty-btn">Take Your First Assessment →</a>
+  </div></div>
+  <div class="card card-full motivation-banner"><span class="motivation-emoji">💫</span><p class="motivation-text">${data.motivation||''}</p></div>`;
+}
+
+function renderDashboard(el,ins,history){
+  const trendIcons={improving:'📉',worsening:'📈',stable:'➡️'};
+  const trendLabels={improving:'Improving',worsening:'Needs Attention',stable:'Holding Steady'};
+  const levelClass=ins.latestScore<34?'score-low':ins.latestScore<67?'score-moderate':'score-high';
+
+  el.innerHTML=`
+  <!-- Trend Card -->
+  <div class="card reveal" id="trendCard">
+    <div class="card-header"><div class="card-icon">📊</div><div><div class="card-title">Stress Trend</div><div class="card-subtitle">${ins.totalAssessments} assessments analyzed</div></div></div>
+    <div class="trend-row">
+      <div class="trend-icon">${trendIcons[ins.trend]||'➡️'}</div>
+      <div>
+        <div class="trend-label trend-${ins.trend}">${trendLabels[ins.trend]||'Stable'}</div>
+        <div class="trend-meta">Latest: <span class="score-badge ${levelClass}">${ins.latestLevel} — ${ins.latestScore}/100</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Card -->
+  <div class="card reveal" id="summaryCard">
+    <div class="card-header"><div class="card-icon">🤖</div><div><div class="card-title">AI Insight Summary</div><div class="card-subtitle">Personalized analysis of your patterns</div></div></div>
+    <p class="summary-text">${ins.summary}</p>
+  </div>
+
+  <!-- Chart Card -->
+  <div class="card card-full reveal" id="chartCard">
+    <div class="card-header"><div class="card-icon">📈</div><div><div class="card-title">Stress History</div><div class="card-subtitle">Your scores over time</div></div></div>
+    <canvas id="chartCanvas"></canvas>
+  </div>
+
+  <!-- Top Stressors -->
+  <div class="card reveal" id="stressorCard">
+    <div class="card-header"><div class="card-icon">🎯</div><div><div class="card-title">Top Stress Areas</div><div class="card-subtitle">Categories contributing most to your stress</div></div></div>
+    <div class="stressor-pills">${ins.topStressors.map((s,i)=>`<div class="stressor-pill"><span class="stressor-rank">${i+1}</span>${s}</div>`).join('')}</div>
+  </div>
+
+  <!-- Stats Card -->
+  <div class="card reveal" id="statsCard">
+    <div class="card-header"><div class="card-icon">📋</div><div><div class="card-title">Quick Stats</div><div class="card-subtitle">At a glance</div></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;text-align:center">
+      <div style="padding:1rem;background:var(--bg);border-radius:var(--r2)"><div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:1.8rem;color:var(--p)">${ins.totalAssessments}</div><div style="font-size:.78rem;color:var(--muted)">Assessments</div></div>
+      <div style="padding:1rem;background:var(--bg);border-radius:var(--r2)"><div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:1.8rem;color:var(--p)">${ins.latestScore}</div><div style="font-size:.78rem;color:var(--muted)">Latest Score</div></div>
+    </div>
+  </div>
+
+  <!-- Recommendations -->
+  <div class="card card-full reveal" id="recCard">
+    <div class="card-header"><div class="card-icon">💡</div><div><div class="card-title">Personalized Recommendations</div><div class="card-subtitle">Tailored actions for your top stress areas</div></div></div>
+    <div class="rec-grid">${ins.recommendations.map((r,i)=>`<div class="rec-card"><span class="rec-icon">${['🌿','🧘','💪'][i]||'✨'}</span><div class="rec-title">${r.title}</div><div class="rec-detail">${r.detail}</div></div>`).join('')}</div>
+    <button class="ai-advice-btn" id="aiAdviceBtn" onclick="getAIAdvice()">
+      <span>🤖</span> Get AI-Powered Advice
+    </button>
+    <div class="ai-response" id="aiResponse">
+      <div class="ai-response-header"><span class="ai-dot"></span> AI Wellness Advisor — Powered by Ollama</div>
+      <div class="ai-response-body" id="aiResponseBody"></div>
+    </div>
+    <div class="ai-error" id="aiError"></div>
+  </div>
+
+  <!-- Motivation -->
+  <div class="card-full reveal" style="grid-column:1/-1">
+    <div class="motivation-banner"><span class="motivation-emoji">💜</span><p class="motivation-text">${ins.motivation}</p></div>
+  </div>`;
+
+  setTimeout(()=>drawChart(history),300);
+}
+
+/* Canvas Chart */
+function drawChart(data){
+  const canvas=document.getElementById('chartCanvas');
+  if(!canvas||!data.length)return;
+  const dpr=window.devicePixelRatio||1;
+  const rect=canvas.getBoundingClientRect();
+  canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const W=rect.width,H=rect.height;
+  const pad={t:20,r:20,b:35,l:45};
+  const cW=W-pad.l-pad.r,cH=H-pad.t-pad.b;
+  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  const textCol=isDark?'#9CA3AF':'#6B7280';
+  const gridCol=isDark?'rgba(255,255,255,.06)':'rgba(0,0,0,.06)';
+  const scores=data.map(d=>d.score);
+  const maxS=Math.max(100,...scores),minS=0;
+
+  ctx.clearRect(0,0,W,H);
+
+  // Grid lines
+  ctx.strokeStyle=gridCol;ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=pad.t+cH*(i/4);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle=textCol;ctx.font='11px DM Sans';ctx.textAlign='right';
+    ctx.fillText(Math.round(maxS-(maxS-minS)*(i/4)),pad.l-8,y+4);
+  }
+
+  // X labels
+  const step=Math.max(1,Math.floor(data.length/6));
+  ctx.textAlign='center';ctx.font='10px DM Sans';ctx.fillStyle=textCol;
+  data.forEach((d,i)=>{
+    if(i%step===0||i===data.length-1){
+      const x=pad.l+(i/(data.length-1||1))*cW;
+      const lbl=d.date?d.date.split(' ')[0].slice(5):'';
+      ctx.fillText(lbl,x,H-pad.b+18);
+    }
+  });
+
+  if(scores.length<2)return;
+
+  // Gradient fill
+  const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+cH);
+  grad.addColorStop(0,'rgba(108,99,255,.25)');grad.addColorStop(1,'rgba(108,99,255,.02)');
+  ctx.beginPath();
+  scores.forEach((s,i)=>{
+    const x=pad.l+(i/(scores.length-1))*cW;
+    const y=pad.t+cH*(1-(s-minS)/(maxS-minS));
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.lineTo(pad.l+cW,pad.t+cH);ctx.lineTo(pad.l,pad.t+cH);ctx.closePath();
+  ctx.fillStyle=grad;ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  scores.forEach((s,i)=>{
+    const x=pad.l+(i/(scores.length-1))*cW;
+    const y=pad.t+cH*(1-(s-minS)/(maxS-minS));
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle='#6C63FF';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
+
+  // Dots
+  scores.forEach((s,i)=>{
+    const x=pad.l+(i/(scores.length-1))*cW;
+    const y=pad.t+cH*(1-(s-minS)/(maxS-minS));
+    ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fillStyle=s>=67?'#EF4444':s>=34?'#F59E0B':'#10B981';ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+  });
+}
+
+function animateReveal(){
+  if(typeof gsap==='undefined')return;
+  gsap.utils.toArray('.reveal').forEach((el,i)=>{
+    gsap.to(el,{opacity:1,y:0,duration:.6,delay:i*.1,ease:'power2.out'});
+  });
+}
+
+window.addEventListener('resize',()=>{if(window._chartData)drawChart(window._chartData)});
+
+/* AI Advice */
+function getAIAdvice(){
+  const btn=document.getElementById('aiAdviceBtn');
+  const resEl=document.getElementById('aiResponse');
+  const bodyEl=document.getElementById('aiResponseBody');
+  const errEl=document.getElementById('aiError');
+
+  btn.disabled=true;
+  btn.innerHTML='<span class="ai-spin"></span> AI is thinking...';
+  resEl.style.display='none';
+  errEl.style.display='none';
+
+  fetch('/api/ai-advice',{method:'POST',headers:{'Content-Type':'application/json'}})
+  .then(r=>r.json())
+  .then(data=>{
+    btn.disabled=false;
+    btn.innerHTML='<span>🤖</span> Get AI-Powered Advice';
+
+    if(data.error){
+      errEl.textContent=data.error;
+      errEl.style.display='block';
+      return;
+    }
+
+    resEl.style.display='block';
+    bodyEl.innerHTML='';
+    typeText(bodyEl,data.advice);
+  })
+  .catch(()=>{
+    btn.disabled=false;
+    btn.innerHTML='<span>🤖</span> Get AI-Powered Advice';
+    errEl.textContent='Could not connect to the server. Please try again.';
+    errEl.style.display='block';
+  });
+}
+
+function typeText(el,text){
+  let i=0;
+  const cursor=document.createElement('span');
+  cursor.className='ai-cursor';
+  el.appendChild(cursor);
+
+  // Convert markdown-style bold **text** to <strong>text</strong>
+  const formatted=text.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  const temp=document.createElement('div');
+  temp.innerHTML=formatted;
+  const plainParts=[];
+  function walk(node){
+    if(node.nodeType===3){for(const ch of node.textContent)plainParts.push({type:'text',ch:ch})}
+    else if(node.nodeType===1){
+      plainParts.push({type:'open',tag:node.tagName.toLowerCase()});
+      for(const child of node.childNodes)walk(child);
+      plainParts.push({type:'close',tag:node.tagName.toLowerCase()});
+    }
+  }
+  for(const child of temp.childNodes)walk(child);
+
+  let currentEl=el;
+  const stack=[el];
+
+  function step(){
+    if(i>=plainParts.length){cursor.remove();return;}
+    const p=plainParts[i++];
+    if(p.type==='text'){
+      const tn=document.createTextNode(p.ch);
+      currentEl.insertBefore(tn,cursor.parentNode===currentEl?cursor:null);
+      if(cursor.parentNode!==currentEl)currentEl.appendChild(cursor);
+    }else if(p.type==='open'){
+      const tag=document.createElement(p.tag);
+      currentEl.insertBefore(tag,cursor.parentNode===currentEl?cursor:null);
+      stack.push(tag);currentEl=tag;
+      currentEl.appendChild(cursor);
+    }else if(p.type==='close'){
+      stack.pop();
+      currentEl=stack[stack.length-1]||el;
+      if(cursor.parentNode)cursor.parentNode.removeChild(cursor);
+      currentEl.appendChild(cursor);
+    }
+    setTimeout(step,p.type==='text'?12:0);
+  }
+  step();
+}
+
+/* Three.js 3D Background */
+(function init3D(){
+  if(typeof THREE==='undefined')return;
+  const canvas=document.getElementById('bgCanvas');
+  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,300);
+  camera.position.z=35;
+  const N=160,pts=[],pPos=new Float32Array(N*3),pVel=[];
+  for(let i=0;i<N;i++){
+    const x=(Math.random()-.5)*100,y=(Math.random()-.5)*70,z=(Math.random()-.5)*50;
+    pPos[i*3]=x;pPos[i*3+1]=y;pPos[i*3+2]=z;
+    pts.push(new THREE.Vector3(x,y,z));
+    pVel.push({x:(Math.random()-.5)*.04,y:(Math.random()-.5)*.04,z:(Math.random()-.5)*.02});
+  }
+  const pGeo=new THREE.BufferGeometry();
+  pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+  const pMat=new THREE.PointsMaterial({color:0x6C63FF,size:.4,transparent:true,opacity:.7});
+  scene.add(new THREE.Points(pGeo,pMat));
+  const maxLines=300,linePos=new Float32Array(maxLines*6);
+  const lineGeo=new THREE.BufferGeometry();
+  lineGeo.setAttribute('position',new THREE.BufferAttribute(linePos,3));
+  scene.add(new THREE.LineSegments(lineGeo,new THREE.LineBasicMaterial({color:0x6C63FF,transparent:true,opacity:.08})));
+  const rings=[];
+  [0x6C63FF,0xFF6584,0x43E97B,0xFBBF24,0x6C63FF].forEach((col,i)=>{
+    const g=new THREE.TorusGeometry(4+i*1.5,.07+Math.random()*.08,8,80);
+    const m=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.1+Math.random()*.08});
+    const mesh=new THREE.Mesh(g,m);
+    mesh.position.set((Math.random()-.5)*60,(Math.random()-.5)*40,(Math.random()-.5)*20);
+    mesh.rotation.set(Math.random()*Math.PI,Math.random()*Math.PI,Math.random()*Math.PI);
+    mesh.userData={rx:(Math.random()-.5)*.004,ry:(Math.random()-.5)*.005,rz:(Math.random()-.5)*.003};
+    scene.add(mesh);rings.push(mesh);
+  });
+  const icos=[];
+  for(let i=0;i<8;i++){
+    const g=new THREE.IcosahedronGeometry(.4+Math.random()*1.2,0);
+    const m=new THREE.MeshBasicMaterial({color:0x6C63FF,wireframe:true,transparent:true,opacity:.06+Math.random()*.08});
+    const mesh=new THREE.Mesh(g,m);
+    mesh.position.set((Math.random()-.5)*80,(Math.random()-.5)*55,(Math.random()-.5)*30);
+    mesh.userData={ry:(Math.random()-.5)*.006,rz:(Math.random()-.5)*.004};
+    scene.add(mesh);icos.push(mesh);
+  }
+  let mx=0,my=0,t=0;
+  window.addEventListener('mousemove',e=>{mx=(e.clientX/innerWidth-.5)*2;my=-(e.clientY/innerHeight-.5)*2});
+  window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+  const CONN_DIST=15;
+  function animate(){
+    requestAnimationFrame(animate);t+=.005;
+    for(let i=0;i<N;i++){
+      pts[i].x+=pVel[i].x;pts[i].y+=pVel[i].y;pts[i].z+=pVel[i].z;
+      if(Math.abs(pts[i].x)>50)pVel[i].x*=-1;
+      if(Math.abs(pts[i].y)>35)pVel[i].y*=-1;
+      if(Math.abs(pts[i].z)>25)pVel[i].z*=-1;
+      pPos[i*3]=pts[i].x;pPos[i*3+1]=pts[i].y;pPos[i*3+2]=pts[i].z;
+    }
+    pGeo.attributes.position.needsUpdate=true;
+    let lineIdx=0;
+    for(let i=0;i<N&&lineIdx<maxLines-1;i++)for(let j=i+1;j<N&&lineIdx<maxLines-1;j++){
+      if(pts[i].distanceTo(pts[j])<CONN_DIST){
+        linePos[lineIdx*6]=pts[i].x;linePos[lineIdx*6+1]=pts[i].y;linePos[lineIdx*6+2]=pts[i].z;
+        linePos[lineIdx*6+3]=pts[j].x;linePos[lineIdx*6+4]=pts[j].y;linePos[lineIdx*6+5]=pts[j].z;
+        lineIdx++;
+      }
+    }
+    lineGeo.attributes.position.needsUpdate=true;lineGeo.setDrawRange(0,lineIdx*2);
+    rings.forEach((r,i)=>{r.rotation.x+=r.userData.rx;r.rotation.y+=r.userData.ry;r.rotation.z+=r.userData.rz;r.position.y+=Math.sin(t+i)*.01});
+    icos.forEach((m,i)=>{m.rotation.y+=m.userData.ry;m.rotation.z+=m.userData.rz;m.position.y+=Math.cos(t*.8+i*1.4)*.007});
+    camera.position.x+=(mx*3-camera.position.x)*.025;
+    camera.position.y+=(my*2-camera.position.y)*.025;
+    camera.lookAt(scene.position);renderer.render(scene,camera);
+  }
+  animate();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MindCheck – My Profile</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<style>
+/* ============================================================
+   VARIABLES & RESET  (identical to homepage)
+============================================================ */
+:root{
+  --p:#6C63FF;--p2:#8B85FF;--p3:#4A42CC;
+  --acc:#FF6584;--green:#10B981;--yellow:#F59E0B;--red:#EF4444;
+  --bg:#F4F5FF;--bg2:#EEEEFF;--card:#FFFFFF;
+  --text:#1A1A2E;--muted:#6B7280;--border:#E5E7EB;
+  --sh:0 4px 30px rgba(108,99,255,0.1);
+  --sh2:0 12px 40px rgba(108,99,255,0.22);
+  --r:18px;--r2:12px;
+  --ease:cubic-bezier(0.4,0,0.2,1);
+}
+[data-theme="dark"]{
+  --bg:#080812;--bg2:#0F0F1E;--card:#13132A;
+  --text:#EEEEFF;--muted:#9CA3AF;--border:#252540;
+  --sh:0 4px 30px rgba(0,0,0,0.5);
+  --sh2:0 12px 40px rgba(108,99,255,0.35);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:16px}
+body{
+  font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);
+  min-height:100vh;overflow-x:hidden;transition:background .4s,color .4s;cursor:none;
+}
+</style>
+<style>
+/* ============================================================
+   CUSTOM CURSOR
+============================================================ */
+#cursor{position:fixed;width:12px;height:12px;background:var(--p);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .2s,height .2s,background .2s,opacity .2s;mix-blend-mode:multiply}
+[data-theme="dark"] #cursor{mix-blend-mode:screen}
+#cursor-ring{position:fixed;width:36px;height:36px;border:1.5px solid rgba(108,99,255,0.5);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width .35s var(--ease),height .35s var(--ease),opacity .3s}
+.cursor-grow #cursor{width:22px;height:22px;opacity:.7}
+.cursor-grow #cursor-ring{width:50px;height:50px;opacity:.4}
+
+/* ============================================================
+   3D CANVAS & SCROLL BAR
+============================================================ */
+#bgCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.45}
+[data-theme="dark"] #bgCanvas{opacity:.65}
+#scrollBar{position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,var(--p),var(--acc));z-index:9997;box-shadow:0 0 8px rgba(108,99,255,0.6);transition:width .1s linear}
+
+/* ============================================================
+   NAVBAR  (exact match)
+============================================================ */
+.navbar{position:fixed;top:0;left:0;right:0;z-index:500;display:flex;align-items:center;gap:1.5rem;padding:.9rem 2.5rem;background:rgba(255,255,255,0.75);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(108,99,255,0.1);box-shadow:0 2px 20px rgba(108,99,255,0.06);transition:background .4s,box-shadow .4s}
+[data-theme="dark"] .navbar{background:rgba(8,8,18,0.8)}
+.navbar.scrolled{box-shadow:0 4px 30px rgba(108,99,255,0.12)}
+.nav-brand{display:flex;align-items:center;gap:.7rem;min-width:170px;text-decoration:none}
+.nav-logo{width:38px;height:38px;flex-shrink:0;animation:logoBob 3s ease-in-out infinite}
+@keyframes logoBob{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-4px) rotate(3deg)}}
+.brand-name{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.2rem;color:var(--p);letter-spacing:-.5px;line-height:1}
+.brand-tag{font-size:.65rem;color:var(--muted);letter-spacing:.3px}
+.nav-links{display:flex;list-style:none;gap:.15rem;flex:1;justify-content:center}
+.nav-link{text-decoration:none;color:var(--muted);font-weight:500;font-size:.88rem;padding:.4rem .85rem;border-radius:8px;transition:color .25s,background .25s;position:relative}
+.nav-link::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%) scaleX(0);width:60%;height:2px;background:var(--p);border-radius:2px;transition:transform .25s var(--ease)}
+.nav-link:hover,.nav-link.active{color:var(--p);background:rgba(108,99,255,0.07)}
+.nav-link.active::after,.nav-link:hover::after{transform:translateX(-50%) scaleX(1)}
+.nav-right{display:flex;align-items:center;gap:.8rem;min-width:240px;justify-content:flex-end}
+.theme-btn{width:42px;height:24px;border-radius:12px;border:none;cursor:none;background:var(--border);position:relative;transition:background .3s;flex-shrink:0}
+.theme-btn.dark-mode{background:var(--p)}
+.theme-btn::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform .3s var(--ease);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.theme-btn.dark-mode::after{transform:translateX(18px)}
+.btn-primary{background:var(--p);color:#fff;border:none;border-radius:var(--r2);padding:.5rem 1.1rem;font-family:'Nunito',sans-serif;font-weight:800;font-size:.82rem;cursor:none;white-space:nowrap;transition:background .25s,transform .25s,box-shadow .25s;position:relative;overflow:hidden;text-decoration:none;display:inline-flex;align-items:center;gap:.4rem}
+.btn-primary::before{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,0.2) 50%,transparent 70%);transform:translateX(-100%);transition:.5s}
+.btn-primary:hover::before{transform:translateX(100%)}
+.btn-primary:hover{background:var(--p3);transform:translateY(-1px);box-shadow:0 6px 18px rgba(108,99,255,.35)}
+
+/* ── NAV AVATAR PROFILE BUTTON ── */
+.nav-avatar-btn{display:inline-flex;align-items:center;gap:.5rem;text-decoration:none;padding:.3rem .7rem .3rem .3rem;border-radius:99px;border:1.5px solid var(--border);background:var(--card);transition:border-color .25s,box-shadow .25s,transform .25s,background .25s;position:relative;cursor:none}
+.nav-avatar-btn:hover,.nav-avatar-btn.active-profile{border-color:var(--p);box-shadow:0 4px 14px rgba(108,99,255,.2);background:rgba(108,99,255,.06)}
+.nav-avatar-btn.active-profile{transform:none}
+.nav-avatar-ring{width:30px;height:30px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--p),var(--acc));padding:2px}
+.nav-avatar-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;background:var(--bg2);display:flex;align-items:center;justify-content:center}
+.nav-avatar-inner img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+#navAvatarInitials{font-family:'Nunito',sans-serif;font-weight:900;font-size:.7rem;color:var(--p);line-height:1}
+.nav-avatar-label{font-family:'Nunito',sans-serif;font-weight:700;font-size:.8rem;color:var(--p)}
+.nav-online-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 0 2px rgba(16,185,129,.25)}
+</style>
+<style>
+/* ============================================================
+   HERO  (same pattern as homepage/insights)
+============================================================ */
+.hero{position:relative;text-align:center;padding:7rem 2rem 2.5rem;z-index:1;overflow:hidden;min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.hero-badge{display:inline-flex;align-items:center;gap:.4rem;background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);color:var(--p);font-size:.78rem;font-weight:700;padding:.35rem .9rem;border-radius:99px;margin-bottom:1rem;animation:badgePop .6s var(--ease) .2s both}
+@keyframes badgePop{from{opacity:0;transform:scale(.8) translateY(-10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.hero-title{font-family:'Nunito',sans-serif;font-size:clamp(2rem,5vw,3rem);font-weight:900;color:var(--text);letter-spacing:-1.5px;line-height:1.1;animation:heroSlide .7s var(--ease) .3s both}
+.hero-title span{background:linear-gradient(135deg,var(--p),var(--acc));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+@keyframes heroSlide{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.hero-sub{color:var(--muted);font-size:1rem;margin-top:.5rem;animation:heroSlide .7s var(--ease) .45s both}
+
+/* ============================================================
+   CARDS  (exact match)
+============================================================ */
+.card{background:var(--card);border-radius:var(--r);padding:1.8rem;box-shadow:var(--sh);border:1px solid var(--border);transition:box-shadow .3s,border-color .3s,transform .3s;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;inset:0;border-radius:var(--r);background:linear-gradient(135deg,rgba(108,99,255,.03) 0%,transparent 60%);pointer-events:none}
+.card:hover{box-shadow:var(--sh2);border-color:rgba(108,99,255,.25);transform:translateY(-3px)}
+.card-header{display:flex;align-items:center;gap:1rem;margin-bottom:1.4rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
+.card-icon{width:46px;height:46px;background:linear-gradient(135deg,rgba(108,99,255,.15),rgba(108,99,255,.05));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;box-shadow:0 2px 8px rgba(108,99,255,.1)}
+.card-title{font-family:'Nunito',sans-serif;font-weight:800;font-size:1.15rem;color:var(--text)}
+.card-subtitle{font-size:.8rem;color:var(--muted);margin-top:2px}
+
+/* ============================================================
+   PROFILE LAYOUT
+============================================================ */
+.profile-wrap{max-width:1100px;margin:0 auto 3rem;padding:0 2rem;position:relative;z-index:1;display:flex;flex-direction:column;gap:1.5rem}
+
+/* ============================================================
+   PROFILE HEADER CARD
+============================================================ */
+.profile-header-card{
+  background:var(--card);border-radius:var(--r);
+  box-shadow:var(--sh);border:1px solid var(--border);
+  overflow:hidden;position:relative;
+  transition:box-shadow .3s,border-color .3s;
+}
+.profile-header-card:hover{box-shadow:var(--sh2);border-color:rgba(108,99,255,.25)}
+.profile-header-card::before{content:'';position:absolute;inset:0;border-radius:var(--r);background:linear-gradient(135deg,rgba(108,99,255,.03) 0%,transparent 60%);pointer-events:none}
+
+/* Banner */
+.profile-banner{
+  height:140px;
+  background:linear-gradient(135deg,var(--p) 0%,var(--p3) 40%,var(--acc) 100%);
+  position:relative;overflow:hidden;
+}
+.profile-banner::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.08) 50%,transparent 70%);
+  animation:shimmer 4s infinite;
+}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.banner-deco{position:absolute;pointer-events:none}
+.banner-deco-1{top:-20px;right:60px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.06);animation:float1 6s ease-in-out infinite}
+.banner-deco-2{bottom:-30px;right:200px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.04);animation:float2 8s ease-in-out infinite}
+.banner-deco-3{top:10px;left:80px;width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.05);animation:float1 5s ease-in-out infinite;animation-delay:-2s}
+@keyframes float1{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes float2{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-8px) rotate(5deg)}}
+
+/* Avatar area */
+.profile-body{padding:0 2rem 2rem;position:relative}
+.avatar-row{display:flex;align-items:flex-end;justify-content:space-between;margin-top:-52px;margin-bottom:1.2rem;flex-wrap:wrap;gap:1rem}
+.avatar-wrap{position:relative;flex-shrink:0}
+.avatar-ring{
+  width:104px;height:104px;border-radius:50%;
+  background:linear-gradient(135deg,var(--p),var(--acc),var(--p3));
+  padding:3px;
+  box-shadow:0 0 0 4px var(--card),0 8px 24px rgba(108,99,255,.35);
+  animation:ringPulse 3s ease-in-out infinite;
+  transition:transform .3s var(--ease);
+}
+.avatar-ring:hover{transform:scale(1.05)}
+@keyframes ringPulse{0%,100%{box-shadow:0 0 0 4px var(--card),0 8px 24px rgba(108,99,255,.35)}50%{box-shadow:0 0 0 4px var(--card),0 8px 32px rgba(108,99,255,.55),0 0 0 8px rgba(108,99,255,.08)}}
+.avatar-inner{width:100%;height:100%;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,var(--bg2),var(--bg));display:flex;align-items:center;justify-content:center}
+.avatar-inner img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.avatar-initials{font-family:'Nunito',sans-serif;font-weight:900;font-size:2rem;color:var(--p);line-height:1}
+.status-dot{
+  position:absolute;bottom:6px;right:6px;
+  width:18px;height:18px;border-radius:50%;
+  background:var(--green);
+  border:3px solid var(--card);
+  box-shadow:0 0 0 2px rgba(16,185,129,.3);
+  animation:statusPulse 2s ease-in-out infinite;
+}
+@keyframes statusPulse{0%,100%{box-shadow:0 0 0 2px rgba(16,185,129,.3)}50%{box-shadow:0 0 0 5px rgba(16,185,129,.15)}}
+.avatar-actions{display:flex;gap:.7rem;align-items:center;padding-bottom:.4rem}
+.btn-edit{
+  background:linear-gradient(135deg,var(--p),var(--p3));color:#fff;border:none;
+  border-radius:var(--r2);padding:.55rem 1.3rem;
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.85rem;
+  cursor:none;transition:transform .25s,box-shadow .25s;
+  position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:.4rem;
+}
+.btn-edit::after{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.18) 50%,transparent 70%);transform:translateX(-100%);transition:.6s}
+.btn-edit:hover::after{transform:translateX(100%)}
+.btn-edit:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(108,99,255,.4)}
+.btn-outline{
+  background:transparent;color:var(--p);
+  border:1.5px solid var(--p);border-radius:var(--r2);
+  padding:.5rem 1.1rem;font-family:'Nunito',sans-serif;font-weight:700;font-size:.82rem;
+  cursor:none;transition:background .25s,transform .25s,color .25s;
+  display:inline-flex;align-items:center;gap:.4rem;
+}
+.btn-outline:hover{background:rgba(108,99,255,.08);transform:translateY(-1px)}
+
+/* User info */
+.user-info{margin-bottom:1.4rem}
+.user-name{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.7rem;color:var(--text);letter-spacing:-.5px;line-height:1.1}
+.user-username{color:var(--muted);font-size:.9rem;margin-top:.2rem;font-weight:500}
+.user-username span{color:var(--p);font-weight:700}
+.user-meta-row{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.9rem}
+.meta-chip{
+  display:inline-flex;align-items:center;gap:.4rem;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:99px;padding:.35rem .85rem;
+  font-size:.8rem;color:var(--muted);font-weight:500;
+  transition:border-color .25s,color .25s,background .25s;
+}
+.meta-chip:hover{border-color:var(--p);color:var(--p);background:rgba(108,99,255,.06)}
+.meta-chip .chip-icon{font-size:.9rem}
+.status-badge{
+  display:inline-flex;align-items:center;gap:.4rem;
+  background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);
+  color:var(--green);border-radius:99px;padding:.3rem .8rem;
+  font-size:.78rem;font-weight:700;
+}
+.status-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--green);animation:statusPulse 2s ease-in-out infinite}
+</style>
+<style>
+/* ============================================================
+   STATS ROW
+============================================================ */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;text-align:center;transition:transform .3s var(--ease),box-shadow .3s,border-color .3s}
+.stat-card:hover{transform:translateY(-5px);box-shadow:var(--sh2);border-color:rgba(108,99,255,.3)}
+.stat-num{font-family:'Nunito',sans-serif;font-size:2.2rem;font-weight:900;color:var(--p);line-height:1}
+.stat-label{font-size:.8rem;color:var(--muted);margin-top:.3rem}
+.stat-icon{font-size:1.4rem;margin-bottom:.4rem;display:block}
+
+/* ============================================================
+   TWO-COLUMN GRID
+============================================================ */
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.profile-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem}
+
+/* ============================================================
+   FORM FIELDS (edit mode)
+============================================================ */
+.form-group{margin-bottom:1rem}
+.form-label{display:block;font-weight:600;font-size:.84rem;color:var(--text);margin-bottom:.35rem}
+.form-input{
+  width:100%;padding:.72rem 1rem;border:1.5px solid var(--border);border-radius:var(--r2);
+  background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:.88rem;
+  outline:none;transition:border .25s,box-shadow .25s,background .25s;cursor:none;
+}
+.form-input:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(108,99,255,.12);background:var(--card)}
+.form-input::placeholder{color:var(--muted)}
+.form-input:disabled{opacity:.55;cursor:not-allowed}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+.btn-save{
+  width:100%;padding:.85rem;background:linear-gradient(135deg,var(--p),var(--p3));
+  color:#fff;border:none;border-radius:var(--r2);font-family:'Nunito',sans-serif;
+  font-weight:900;font-size:.95rem;cursor:none;letter-spacing:.3px;
+  transition:transform .25s,box-shadow .25s,opacity .25s;position:relative;overflow:hidden;margin-top:.4rem;
+}
+.btn-save::after{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.18) 50%,transparent 70%);transform:translateX(-100%);transition:.6s}
+.btn-save:hover::after{transform:translateX(100%)}
+.btn-save:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(108,99,255,.4)}
+.btn-save.loading{pointer-events:none;opacity:.8}
+.btn-save.loading::before{content:'';display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ============================================================
+   AVATAR UPLOAD AREA
+============================================================ */
+.avatar-upload-area{
+  border:2px dashed var(--border);border-radius:var(--r2);
+  padding:1.5rem;text-align:center;cursor:none;
+  transition:border-color .25s,background .25s;
+  background:var(--bg);
+}
+.avatar-upload-area:hover{border-color:var(--p);background:rgba(108,99,255,.04)}
+.avatar-upload-area.drag-over{border-color:var(--p);background:rgba(108,99,255,.08)}
+.upload-icon{font-size:2rem;display:block;margin-bottom:.5rem}
+.upload-text{font-size:.85rem;color:var(--muted);line-height:1.5}
+.upload-text strong{color:var(--p)}
+.avatar-preview-row{display:flex;align-items:center;gap:1rem;margin-bottom:1rem}
+.avatar-preview-sm{width:64px;height:64px;border-radius:50%;overflow:hidden;background:var(--bg2);border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.avatar-preview-sm img{width:100%;height:100%;object-fit:cover}
+.avatar-preview-sm .initials-sm{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.2rem;color:var(--p)}
+
+/* ============================================================
+   STRESS HISTORY MINI CHART
+============================================================ */
+#miniChartCanvas{width:100%;height:160px;border-radius:var(--r2)}
+
+/* ============================================================
+   ACTIVITY TIMELINE
+============================================================ */
+.timeline{display:flex;flex-direction:column;gap:.8rem}
+.timeline-item{display:flex;align-items:flex-start;gap:.9rem;padding:.8rem;border-radius:var(--r2);background:var(--bg);border:1px solid var(--border);transition:border-color .25s,background .25s}
+.timeline-item:hover{border-color:rgba(108,99,255,.25);background:rgba(108,99,255,.03)}
+.tl-dot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.tl-dot-low{background:rgba(16,185,129,.12);color:var(--green)}
+.tl-dot-moderate{background:rgba(245,158,11,.12);color:var(--yellow)}
+.tl-dot-high{background:rgba(239,68,68,.12);color:var(--red)}
+.tl-content{flex:1;min-width:0}
+.tl-title{font-weight:700;font-size:.88rem;color:var(--text)}
+.tl-meta{font-size:.76rem;color:var(--muted);margin-top:2px}
+.tl-badge{display:inline-flex;align-items:center;padding:.2rem .65rem;border-radius:99px;font-size:.72rem;font-weight:700;margin-left:.5rem}
+.tl-badge-low{background:rgba(16,185,129,.12);color:var(--green)}
+.tl-badge-moderate{background:rgba(245,158,11,.12);color:var(--yellow)}
+.tl-badge-high{background:rgba(239,68,68,.12);color:var(--red)}
+.tl-score{font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;color:var(--p);flex-shrink:0;align-self:center}
+
+/* ============================================================
+   TOAST NOTIFICATION
+============================================================ */
+.toast{
+  position:fixed;bottom:2rem;right:2rem;z-index:9000;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r2);padding:.9rem 1.4rem;
+  box-shadow:var(--sh2);display:flex;align-items:center;gap:.7rem;
+  font-size:.88rem;font-weight:600;color:var(--text);
+  transform:translateY(120%);opacity:0;
+  transition:transform .4s var(--ease),opacity .4s;
+  max-width:320px;
+}
+.toast.show{transform:translateY(0);opacity:1}
+.toast-icon{font-size:1.2rem;flex-shrink:0}
+.toast-success{border-left:3px solid var(--green)}
+.toast-error{border-left:3px solid var(--red)}
+
+/* ============================================================
+   SECTION BADGE (same as homepage)
+============================================================ */
+.section-badge{display:inline-flex;align-items:center;gap:.4rem;background:rgba(108,99,255,.08);color:var(--p);font-weight:700;font-size:.78rem;padding:.3rem .9rem;border-radius:99px;margin-bottom:.8rem;border:1px solid rgba(108,99,255,.18)}
+
+/* ============================================================
+   EMPTY / LOADING STATES
+============================================================ */
+.loading-spinner{display:flex;align-items:center;justify-content:center;padding:3rem}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--p);border-radius:50%;animation:spin .8s linear infinite}
+.empty-state{text-align:center;padding:2.5rem 1rem}
+.empty-icon{font-size:3rem;display:block;margin-bottom:.8rem}
+.empty-desc{color:var(--muted);font-size:.88rem;line-height:1.6}
+
+/* ============================================================
+   REVEAL ANIMATIONS
+============================================================ */
+.reveal{opacity:0;transform:translateY(25px)}
+.reveal-left{opacity:0;transform:translateX(-25px)}
+.reveal-right{opacity:0;transform:translateX(25px)}
+.reveal-scale{opacity:0;transform:scale(.93)}
+
+/* ============================================================
+   FOOTER  (exact match)
+============================================================ */
+.footer{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.6rem 2.5rem;border-top:1px solid var(--border);background:var(--card);flex-wrap:wrap}
+.footer-logo{font-size:.95rem;color:var(--p);font-family:'Nunito',sans-serif;font-weight:800}
+.footer-tag{font-size:.72rem;color:var(--muted);margin-top:2px}
+.footer-copy{font-size:.78rem;color:var(--muted)}
+.footer-links{display:flex;gap:1.2rem}
+.footer-links a{font-size:.78rem;color:var(--muted);text-decoration:none;transition:color .2s}
+.footer-links a:hover{color:var(--p)}
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+@media(max-width:1024px){
+  .profile-grid{grid-template-columns:1fr}
+  .profile-grid-3{grid-template-columns:1fr 1fr}
+  .stats-row{grid-template-columns:1fr 1fr}
+}
+@media(max-width:768px){
+  .navbar{padding:.7rem 1rem;flex-wrap:wrap}
+  .nav-links{display:none}
+  .profile-grid,.profile-grid-3,.stats-row{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr}
+  .avatar-row{flex-direction:column;align-items:flex-start;margin-top:-40px}
+  .footer{flex-direction:column;text-align:center}
+  body{cursor:auto}
+  #cursor,#cursor-ring{display:none}
+  .profile-body{padding:0 1.2rem 1.5rem}
+}
+</style>
+</head>
+<body>
+
+<!-- Custom Cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- Scroll Progress -->
+<div id="scrollBar"></div>
+
+<!-- 3D Background Canvas -->
+<canvas id="bgCanvas"></canvas>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toastIcon">✅</span>
+  <span id="toastMsg">Profile updated successfully!</span>
+</div>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <a class="nav-brand" href="/">
+    <svg class="nav-logo" viewBox="0 0 40 40" fill="none">
+      <circle cx="20" cy="20" r="19" stroke="#6C63FF" stroke-width="2"/>
+      <path d="M14 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#6C63FF" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="20" cy="14" r="2" fill="#6C63FF"/>
+      <path d="M12 26c1.5-2 4.5-3 8-3s6.5 1 8 3" stroke="#6C63FF" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <div class="brand-name">MindCheck</div>
+      <div class="brand-tag">Understand. Manage. Thrive.</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/" class="nav-link">Home</a></li>
+    <li><a href="/#check-stress" class="nav-link">Check Stress</a></li>
+    <li><a href="/insights" class="nav-link">Insights ✨</a></li>
+    <li><a href="/profile" class="nav-link active">Profile</a></li>
+  </ul>
+  <div class="nav-right">
+    <button class="theme-btn" id="themeBtn" title="Toggle theme"></button>
+    <a href="/" class="btn-primary">Take Assessment</a>
+    <a href="/profile" class="nav-avatar-btn active-profile" id="navProfileBtn" title="My Profile">
+      <div class="nav-avatar-ring">
+        <div class="nav-avatar-inner" id="navAvatarInner">
+          <span id="navAvatarInitials">?</span>
+        </div>
+      </div>
+      <span class="nav-avatar-label" id="navAvatarLabel">Profile</span>
+      <span class="nav-online-dot"></span>
+    </a>
+    <a href="/logout" class="btn-primary" style="background:#EF4444">⏻ Logout</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">👤 Your Account</div>
+  <h1 class="hero-title">My <span>Profile</span></h1>
+  <p class="hero-sub">Manage your personal information and track your wellness journey</p>
+</section>
+
+<!-- PROFILE CONTENT -->
+<div class="profile-wrap" id="profileWrap">
+  <div class="loading-spinner" id="loadingState"><div class="spinner"></div></div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div>
+    <div class="footer-logo">🧠 MindCheck</div>
+    <div class="footer-tag">Understand. Manage. Thrive.</div>
+  </div>
+  <div class="footer-copy">© 2024 MindCheck. All rights reserved.</div>
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="/insights">Insights</a>
+    <a href="/profile">Profile</a>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   CUSTOM CURSOR
+============================================================ */
+const cur = document.getElementById('cursor');
+const curRing = document.getElementById('cursor-ring');
+let cx = 0, cy = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => { cx = e.clientX; cy = e.clientY; });
+function animCursor() {
+  rx += (cx - rx) * .18; ry += (cy - ry) * .18;
+  if (cur) { cur.style.left = cx + 'px'; cur.style.top = cy + 'px'; }
+  if (curRing) { curRing.style.left = rx + 'px'; curRing.style.top = ry + 'px'; }
+  requestAnimationFrame(animCursor);
+}
+animCursor();
+function addCursorGrow(el) {
+  el.addEventListener('mouseenter', () => document.body.classList.add('cursor-grow'));
+  el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-grow'));
+}
+
+/* ============================================================
+   THEME TOGGLE
+============================================================ */
+(function () {
+  const btn = document.getElementById('themeBtn');
+  const saved = localStorage.getItem('mc-theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  if (saved === 'dark') btn.classList.add('dark-mode');
+  btn.addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('mc-theme', next);
+    btn.classList.toggle('dark-mode', next === 'dark');
+    if (window._historyData) drawMiniChart(window._historyData);
+  });
+})();
+
+/* ============================================================
+   SCROLL PROGRESS + NAVBAR SCROLL
+============================================================ */
+window.addEventListener('scroll', () => {
+  const pct = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+  document.getElementById('scrollBar').style.width = pct + '%';
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 20);
+});
+
+/* ============================================================
+   TOAST
+============================================================ */
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  const icon = document.getElementById('toastIcon');
+  const msgEl = document.getElementById('toastMsg');
+  t.className = 'toast toast-' + type + ' show';
+  icon.textContent = type === 'success' ? '✅' : '❌';
+  msgEl.textContent = msg;
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+/* ============================================================
+   HELPERS
+============================================================ */
+function getInitials(first, last) {
+  return ((first || '').charAt(0) + (last || '').charAt(0)).toUpperCase() || '?';
+}
+function formatJoinDate(str) {
+  if (!str) return 'Unknown';
+  return str;
+}
+
+/* ============================================================
+   RENDER PROFILE
+============================================================ */
+function renderProfile(user, history) {
+  const wrap = document.getElementById('profileWrap');
+  const initials = getInitials(user.first_name, user.last_name);
+  const avatarHTML = user.avatar_url
+    ? `<img src="${user.avatar_url}" alt="Avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    : '';
+  const initialsHTML = `<span class="avatar-initials" ${user.avatar_url ? 'style="display:none"' : ''}>${initials}</span>`;
+
+  const latestScore = history.length ? history[history.length - 1].score : null;
+  const latestLevel = history.length ? history[history.length - 1].level : null;
+  const levelClass = latestScore === null ? '' : latestScore >= 67 ? 'tl-badge-high' : latestScore >= 34 ? 'tl-badge-moderate' : 'tl-badge-low';
+
+  wrap.innerHTML = `
+  <!-- ── PROFILE HEADER CARD ── -->
+  <div class="profile-header-card reveal">
+    <div class="profile-banner">
+      <div class="banner-deco banner-deco-1"></div>
+      <div class="banner-deco banner-deco-2"></div>
+      <div class="banner-deco banner-deco-3"></div>
+    </div>
+    <div class="profile-body">
+      <div class="avatar-row">
+        <div class="avatar-wrap">
+          <div class="avatar-ring">
+            <div class="avatar-inner" id="avatarInner">
+              ${avatarHTML}
+              ${initialsHTML}
+            </div>
+          </div>
+          <div class="status-dot" title="Online"></div>
+        </div>
+        <div class="avatar-actions">
+          <button class="btn-edit" id="editToggleBtn" onclick="toggleEditMode()">✏️ Edit Profile</button>
+          <a href="/insights" class="btn-outline">📊 View Insights</a>
+          <a href="/logout" class="btn-outline" style="border-color:#EF4444;color:#EF4444;" onmouseenter="this.style.background='rgba(239,68,68,.08)'" onmouseleave="this.style.background='transparent'">⏻ Logout</a>
+        </div>
+      </div>
+
+      <div class="user-info">
+        <div class="user-name" id="displayName">${user.first_name} ${user.last_name}</div>
+        <div class="user-username">@<span>${user.username}</span></div>
+        <div class="user-meta-row">
+          <span class="status-badge">Online</span>
+          ${user.email ? `<span class="meta-chip"><span class="chip-icon">📧</span>${user.email}</span>` : ''}
+          ${user.age ? `<span class="meta-chip"><span class="chip-icon">🎂</span>${user.age} years old</span>` : ''}
+          ${user.occupation ? `<span class="meta-chip"><span class="chip-icon">💼</span>${user.occupation}</span>` : ''}
+          <span class="meta-chip"><span class="chip-icon">📅</span>Joined ${formatJoinDate(user.created_at)}</span>
+          ${latestLevel ? `<span class="meta-chip ${levelClass.replace('tl-badge','meta-chip')}"><span class="chip-icon">🧠</span>Latest: ${latestLevel} Stress</span>` : ''}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STATS ROW ── -->
+  <div class="stats-row">
+    <div class="stat-card reveal-scale">
+      <span class="stat-icon">📋</span>
+      <div class="stat-num" id="statAssessments">${user.assessments || 0}</div>
+      <div class="stat-label">Assessments Taken</div>
+    </div>
+    <div class="stat-card reveal-scale">
+      <span class="stat-icon">🧠</span>
+      <div class="stat-num">${latestScore !== null ? latestScore : '—'}</div>
+      <div class="stat-label">Latest Stress Score</div>
+    </div>
+    <div class="stat-card reveal-scale">
+      <span class="stat-icon">📅</span>
+      <div class="stat-num" style="font-size:1.3rem">${user.created_at || '—'}</div>
+      <div class="stat-label">Member Since</div>
+    </div>
+  </div>
+
+  <!-- ── EDIT FORM + CHART ── -->
+  <div class="profile-grid">
+    <!-- Edit Profile Card -->
+    <div class="card reveal-left" id="editCard">
+      <div class="card-header">
+        <div class="card-icon">✏️</div>
+        <div>
+          <h2 class="card-title">Edit Profile</h2>
+          <p class="card-subtitle">Update your personal information</p>
+        </div>
+      </div>
+
+      <!-- Avatar Upload -->
+      <div class="avatar-preview-row">
+        <div class="avatar-preview-sm" id="previewSm">
+          ${user.avatar_url
+            ? `<img src="${user.avatar_url}" id="previewImg" alt="Preview">`
+            : `<span class="initials-sm" id="previewInitials">${initials}</span>`}
+        </div>
+        <div style="flex:1">
+          <div class="form-label">Profile Photo URL</div>
+          <input class="form-input" type="url" id="avatarUrlInput" placeholder="https://example.com/photo.jpg" value="${user.avatar_url || ''}"/>
+          <div style="font-size:.74rem;color:var(--muted);margin-top:.3rem">Paste a direct image URL to update your avatar</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="firstNameInput">First Name</label>
+          <input class="form-input" type="text" id="firstNameInput" placeholder="First name" value="${user.first_name || ''}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="lastNameInput">Last Name</label>
+          <input class="form-input" type="text" id="lastNameInput" placeholder="Last name" value="${user.last_name || ''}"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="emailInput">Email Address</label>
+        <input class="form-input" type="email" id="emailInput" placeholder="your@email.com" value="${user.email || ''}"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="ageInput">Age</label>
+          <input class="form-input" type="number" id="ageInput" placeholder="e.g. 25" min="1" max="120" value="${user.age || ''}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="occupationInput">Occupation</label>
+          <input class="form-input" type="text" id="occupationInput" placeholder="e.g. Software Engineer" value="${user.occupation || ''}"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="usernameInput">Username</label>
+        <input class="form-input" type="text" id="usernameInput" value="${user.username || ''}" disabled/>
+        <div style="font-size:.74rem;color:var(--muted);margin-top:.3rem">Username cannot be changed</div>
+      </div>
+      <button class="btn-save" id="saveBtn" onclick="saveProfile()">💾 Save Changes</button>
+    </div>
+
+    <!-- Stress History Chart Card -->
+    <div class="card reveal-right" id="chartCard">
+      <div class="card-header">
+        <div class="card-icon">📈</div>
+        <div>
+          <h2 class="card-title">Stress History</h2>
+          <p class="card-subtitle">Your score trend over time</p>
+        </div>
+      </div>
+      ${history.length >= 2
+        ? `<canvas id="miniChartCanvas"></canvas>`
+        : `<div class="empty-state"><span class="empty-icon">📊</span><p class="empty-desc">Take at least 2 assessments to see your stress trend chart here.</p></div>`}
+    </div>
+  </div>
+
+  <!-- ── RECENT ACTIVITY ── -->
+  <div class="card reveal">
+    <div class="card-header">
+      <div class="card-icon">🕐</div>
+      <div>
+        <h2 class="card-title">Recent Assessments</h2>
+        <p class="card-subtitle">Your last ${Math.min(history.length, 8)} stress checks</p>
+      </div>
+    </div>
+    <div class="timeline" id="timeline">
+      ${renderTimeline(history)}
+    </div>
+  </div>
+  `;
+
+  // Draw chart if data available
+  if (history.length >= 2) {
+    window._historyData = history;
+    setTimeout(() => drawMiniChart(history), 200);
+  }
+
+  // Animate reveals
+  animateReveal();
+
+  // Populate nav avatar from loaded profile data
+  const navInitialsEl = document.getElementById('navAvatarInitials');
+  const navLabelEl = document.getElementById('navAvatarLabel');
+  const navInnerEl = document.getElementById('navAvatarInner');
+  if (navLabelEl) navLabelEl.textContent = user.first_name || user.username || 'Profile';
+  if (user.avatar_url && navInnerEl) {
+    navInnerEl.innerHTML = `<img src="${user.avatar_url}" alt="avatar" onerror="this.parentNode.innerHTML='<span style=font-family:Nunito,sans-serif;font-weight:900;font-size:.7rem;color:var(--p)>${initials}</span>'">`;
+  } else if (navInitialsEl) {
+    navInitialsEl.textContent = initials;
+  }
+
+  // Attach cursor grow to interactive elements
+  document.querySelectorAll('a, button, input, .meta-chip, .stat-card, .timeline-item').forEach(addCursorGrow);
+
+  // Live avatar URL preview
+  const avatarInput = document.getElementById('avatarUrlInput');
+  if (avatarInput) {
+    avatarInput.addEventListener('input', () => {
+      const url = avatarInput.value.trim();
+      const previewSm = document.getElementById('previewSm');
+      const previewInitials = document.getElementById('previewInitials');
+      if (url) {
+        let img = document.getElementById('previewImg');
+        if (!img) {
+          img = document.createElement('img');
+          img.id = 'previewImg';
+          img.alt = 'Preview';
+          previewSm.innerHTML = '';
+          previewSm.appendChild(img);
+        }
+        img.src = url;
+        img.onerror = () => { previewSm.innerHTML = `<span class="initials-sm">${initials}</span>`; };
+      } else {
+        previewSm.innerHTML = `<span class="initials-sm">${initials}</span>`;
+      }
+    });
+  }
+}
+
+function renderTimeline(history) {
+  if (!history.length) {
+    return `<div class="empty-state"><span class="empty-icon">🌱</span><p class="empty-desc">No assessments yet. <a href="/" style="color:var(--p);font-weight:700">Take your first one →</a></p></div>`;
+  }
+  const recent = [...history].reverse().slice(0, 8);
+  return recent.map(h => {
+    const dotClass = h.level === 'High' ? 'tl-dot-high' : h.level === 'Moderate' ? 'tl-dot-moderate' : 'tl-dot-low';
+    const badgeClass = h.level === 'High' ? 'tl-badge-high' : h.level === 'Moderate' ? 'tl-badge-moderate' : 'tl-badge-low';
+    const icon = h.level === 'High' ? '😰' : h.level === 'Moderate' ? '😐' : '😊';
+    return `
+    <div class="timeline-item">
+      <div class="tl-dot ${dotClass}">${icon}</div>
+      <div class="tl-content">
+        <div class="tl-title">Stress Assessment
+          <span class="tl-badge ${badgeClass}">${h.level}</span>
+        </div>
+        <div class="tl-meta">${h.date || 'Unknown date'}</div>
+      </div>
+      <div class="tl-score">${h.score}/100</div>
+    </div>`;
+  }).join('');
+}
+</script>
+
+<script>
+/* ============================================================
+   MINI CHART (same style as insights chart)
+============================================================ */
+function drawMiniChart(data) {
+  const canvas = document.getElementById('miniChartCanvas');
+  if (!canvas || !data.length) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  const pad = { t: 16, r: 16, b: 32, l: 40 };
+  const cW = W - pad.l - pad.r, cH = H - pad.t - pad.b;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const textCol = isDark ? '#9CA3AF' : '#6B7280';
+  const gridCol = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.06)';
+  const scores = data.map(d => d.score);
+  const maxS = 100, minS = 0;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = gridCol; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + cH * (i / 4);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    ctx.fillStyle = textCol; ctx.font = '10px DM Sans'; ctx.textAlign = 'right';
+    ctx.fillText(Math.round(maxS - (maxS - minS) * (i / 4)), pad.l - 6, y + 4);
+  }
+
+  // X labels
+  const step = Math.max(1, Math.floor(data.length / 5));
+  ctx.textAlign = 'center'; ctx.font = '9px DM Sans'; ctx.fillStyle = textCol;
+  data.forEach((d, i) => {
+    if (i % step === 0 || i === data.length - 1) {
+      const x = pad.l + (i / (data.length - 1 || 1)) * cW;
+      const lbl = d.date ? d.date.split(' ')[0].slice(5) : '';
+      ctx.fillText(lbl, x, H - pad.b + 16);
+    }
+  });
+
+  if (scores.length < 2) return;
+
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + cH);
+  grad.addColorStop(0, 'rgba(108,99,255,.25)');
+  grad.addColorStop(1, 'rgba(108,99,255,.02)');
+  ctx.beginPath();
+  scores.forEach((s, i) => {
+    const x = pad.l + (i / (scores.length - 1)) * cW;
+    const y = pad.t + cH * (1 - (s - minS) / (maxS - minS));
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.lineTo(pad.l + cW, pad.t + cH); ctx.lineTo(pad.l, pad.t + cH); ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  scores.forEach((s, i) => {
+    const x = pad.l + (i / (scores.length - 1)) * cW;
+    const y = pad.t + cH * (1 - (s - minS) / (maxS - minS));
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = '#6C63FF'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.stroke();
+
+  // Dots
+  scores.forEach((s, i) => {
+    const x = pad.l + (i / (scores.length - 1)) * cW;
+    const y = pad.t + cH * (1 - (s - minS) / (maxS - minS));
+    ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = s >= 67 ? '#EF4444' : s >= 34 ? '#F59E0B' : '#10B981';
+    ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  });
+}
+
+window.addEventListener('resize', () => {
+  if (window._historyData) drawMiniChart(window._historyData);
+});
+
+/* ============================================================
+   EDIT MODE TOGGLE
+============================================================ */
+let editMode = false;
+function toggleEditMode() {
+  editMode = !editMode;
+  const btn = document.getElementById('editToggleBtn');
+  const editCard = document.getElementById('editCard');
+  if (editMode) {
+    btn.textContent = '✕ Cancel Edit';
+    btn.style.background = '#EF4444';
+    editCard.style.boxShadow = '0 0 0 2px var(--p), var(--sh2)';
+  } else {
+    btn.textContent = '✏️ Edit Profile';
+    btn.style.background = '';
+    editCard.style.boxShadow = '';
+  }
+  editCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* ============================================================
+   SAVE PROFILE
+============================================================ */
+async function saveProfile() {
+  const btn = document.getElementById('saveBtn');
+  const firstName = document.getElementById('firstNameInput').value.trim();
+  const lastName = document.getElementById('lastNameInput').value.trim();
+  const email = document.getElementById('emailInput').value.trim();
+  const age = document.getElementById('ageInput').value.trim();
+  const occupation = document.getElementById('occupationInput').value.trim();
+  const avatarUrl = document.getElementById('avatarUrlInput').value.trim();
+
+  if (!firstName || !lastName || !email) {
+    showToast('First name, last name, and email are required.', 'error');
+    return;
+  }
+
+  btn.classList.add('loading');
+  btn.textContent = ' Saving...';
+
+  try {
+    const res = await fetch('/api/profile/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+        age: age ? parseInt(age) : null,
+        occupation: occupation,
+        avatar_url: avatarUrl,
+      })
+    });
+    const data = await res.json();
+    btn.classList.remove('loading');
+    btn.textContent = '💾 Save Changes';
+
+    if (data.success) {
+      showToast('Profile updated successfully!', 'success');
+      // Update displayed name
+      const displayName = document.getElementById('displayName');
+      if (displayName) displayName.textContent = firstName + ' ' + lastName;
+      // Update avatar in header
+      const avatarInner = document.getElementById('avatarInner');
+      if (avatarInner) {
+        if (avatarUrl) {
+          avatarInner.innerHTML = `<img src="${avatarUrl}" alt="Avatar" onerror="this.style.display='none'">`;
+        } else {
+          const initials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+          avatarInner.innerHTML = `<span class="avatar-initials">${initials}</span>`;
+        }
+      }
+      // Update nav avatar too
+      const navInner = document.getElementById('navAvatarInner');
+      const navLabel = document.getElementById('navAvatarLabel');
+      const newInitials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+      if (navLabel) navLabel.textContent = firstName;
+      if (navInner) {
+        if (avatarUrl) {
+          navInner.innerHTML = `<img src="${avatarUrl}" alt="avatar" onerror="this.parentNode.innerHTML='<span style=font-family:Nunito,sans-serif;font-weight:900;font-size:.7rem;color:var(--p)>${newInitials}</span>'">`;
+        } else {
+          navInner.innerHTML = `<span id="navAvatarInitials" style="font-family:'Nunito',sans-serif;font-weight:900;font-size:.7rem;color:var(--p)">${newInitials}</span>`;
+        }
+      }
+      // Exit edit mode
+      editMode = true;
+      toggleEditMode();
+    } else {
+      showToast(data.error || 'Failed to update profile.', 'error');
+    }
+  } catch (e) {
+    btn.classList.remove('loading');
+    btn.textContent = '💾 Save Changes';
+    showToast('Server error. Please try again.', 'error');
+  }
+}
+
+/* ============================================================
+   GSAP REVEAL ANIMATIONS
+============================================================ */
+function animateReveal() {
+  if (typeof gsap === 'undefined') return;
+  gsap.utils.toArray('.reveal').forEach((el, i) => {
+    gsap.to(el, { opacity: 1, y: 0, duration: .6, delay: i * .1, ease: 'power2.out' });
+  });
+  gsap.utils.toArray('.reveal-left').forEach((el, i) => {
+    gsap.to(el, { opacity: 1, x: 0, duration: .6, delay: .2 + i * .1, ease: 'power2.out' });
+  });
+  gsap.utils.toArray('.reveal-right').forEach((el, i) => {
+    gsap.to(el, { opacity: 1, x: 0, duration: .6, delay: .3 + i * .1, ease: 'power2.out' });
+  });
+  gsap.utils.toArray('.reveal-scale').forEach((el, i) => {
+    gsap.to(el, { opacity: 1, scale: 1, duration: .5, delay: .15 + i * .08, ease: 'back.out(1.4)' });
+  });
+}
+
+/* ============================================================
+   FETCH DATA & INIT
+============================================================ */
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const [profileRes, histRes] = await Promise.all([
+      fetch('/api/profile'),
+      fetch('/api/history')
+    ]);
+    const profile = await profileRes.json();
+    const histData = await histRes.json();
+
+    if (profile.error) {
+      document.getElementById('profileWrap').innerHTML =
+        `<div class="card"><div class="empty-state"><span class="empty-icon">⚠️</span><p class="empty-desc">${profile.error}</p></div></div>`;
+      return;
+    }
+
+    renderProfile(profile, histData.history || []);
+  } catch (e) {
+    document.getElementById('profileWrap').innerHTML =
+      `<div class="card"><div class="empty-state"><span class="empty-icon">⚠️</span><p class="empty-desc">Could not load profile. Please make sure the server is running.</p></div></div>`;
+  }
+});
+</script>
+
+<script>
+/* ============================================================
+   THREE.JS 3D BACKGROUND  (identical to homepage/insights)
+============================================================ */
+(function init3D() {
+  if (typeof THREE === 'undefined') return;
+  const canvas = document.getElementById('bgCanvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, .1, 300);
+  camera.position.z = 35;
+
+  const N = 140, pts = [], pPos = new Float32Array(N * 3), pVel = [];
+  for (let i = 0; i < N; i++) {
+    const x = (Math.random() - .5) * 100, y = (Math.random() - .5) * 70, z = (Math.random() - .5) * 50;
+    pPos[i * 3] = x; pPos[i * 3 + 1] = y; pPos[i * 3 + 2] = z;
+    pts.push(new THREE.Vector3(x, y, z));
+    pVel.push({ x: (Math.random() - .5) * .04, y: (Math.random() - .5) * .04, z: (Math.random() - .5) * .02 });
+  }
+  const pGeo = new THREE.BufferGeometry();
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  const pMat = new THREE.PointsMaterial({ color: 0x6C63FF, size: .4, transparent: true, opacity: .7 });
+  scene.add(new THREE.Points(pGeo, pMat));
+
+  const maxLines = 280, linePos = new Float32Array(maxLines * 6);
+  const lineGeo = new THREE.BufferGeometry();
+  lineGeo.setAttribute('position', new THREE.BufferAttribute(linePos, 3));
+  scene.add(new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: 0x6C63FF, transparent: true, opacity: .08 })));
+
+  const rings = [];
+  [0x6C63FF, 0xFF6584, 0x43E97B, 0xFBBF24, 0x6C63FF].forEach((col, i) => {
+    const g = new THREE.TorusGeometry(4 + i * 1.5, .07 + Math.random() * .08, 8, 80);
+    const m = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: .1 + Math.random() * .08 });
+    const mesh = new THREE.Mesh(g, m);
+    mesh.position.set((Math.random() - .5) * 60, (Math.random() - .5) * 40, (Math.random() - .5) * 20);
+    mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+    mesh.userData = { rx: (Math.random() - .5) * .004, ry: (Math.random() - .5) * .005, rz: (Math.random() - .5) * .003 };
+    scene.add(mesh); rings.push(mesh);
+  });
+
+  const icos = [];
+  for (let i = 0; i < 6; i++) {
+    const g = new THREE.IcosahedronGeometry(.4 + Math.random() * 1.2, 0);
+    const m = new THREE.MeshBasicMaterial({ color: 0x6C63FF, wireframe: true, transparent: true, opacity: .06 + Math.random() * .08 });
+    const mesh = new THREE.Mesh(g, m);
+    mesh.position.set((Math.random() - .5) * 80, (Math.random() - .5) * 55, (Math.random() - .5) * 30);
+    mesh.userData = { ry: (Math.random() - .5) * .006, rz: (Math.random() - .5) * .004 };
+    scene.add(mesh); icos.push(mesh);
+  }
+
+  let mx = 0, my = 0;
+  window.addEventListener('mousemove', e => { mx = (e.clientX / innerWidth - .5) * 2; my = -(e.clientY / innerHeight - .5) * 2; });
+  window.addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+
+  const CONN_DIST = 15;
+  function animate() {
+    requestAnimationFrame(animate);
+    for (let i = 0; i < N; i++) {
+      pts[i].x += pVel[i].x; pts[i].y += pVel[i].y; pts[i].z += pVel[i].z;
+      if (Math.abs(pts[i].x) > 50) pVel[i].x *= -1;
+      if (Math.abs(pts[i].y) > 35) pVel[i].y *= -1;
+      if (Math.abs(pts[i].z) > 25) pVel[i].z *= -1;
+      pPos[i * 3] = pts[i].x; pPos[i * 3 + 1] = pts[i].y; pPos[i * 3 + 2] = pts[i].z;
+    }
+    pGeo.attributes.position.needsUpdate = true;
+    let li = 0;
+    for (let i = 0; i < N && li < maxLines - 1; i++)
+      for (let j = i + 1; j < N && li < maxLines - 1; j++) {
+        if (pts[i].distanceTo(pts[j]) < CONN_DIST) {
+          linePos[li * 6] = pts[i].x; linePos[li * 6 + 1] = pts[i].y; linePos[li * 6 + 2] = pts[i].z;
+          linePos[li * 6 + 3] = pts[j].x; linePos[li * 6 + 4] = pts[j].y; linePos[li * 6 + 5] = pts[j].z;
+          li++;
+        }
+      }
+    lineGeo.attributes.position.needsUpdate = true;
+    lineGeo.setDrawRange(0, li * 2);
+    rings.forEach(r => { r.rotation.x += r.userData.rx; r.rotation.y += r.userData.ry; r.rotation.z += r.userData.rz; });
+    icos.forEach(ic => { ic.rotation.y += ic.userData.ry; ic.rotation.z += ic.userData.rz; });
+    camera.position.x += (mx * 3 - camera.position.x) * .025;
+    camera.position.y += (my * 2 - camera.position.y) * .025;
+    camera.lookAt(scene.position);
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+</script>
+</body>
+</html>

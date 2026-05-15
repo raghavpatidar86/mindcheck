@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MindCheck – Understand. Manage. Thrive.</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+<style>
+/* ============================================================
+   VARIABLES & RESET
+============================================================ */
+:root {
+  --p: #6C63FF;
+  --p2: #8B85FF;
+  --p3: #4A42CC;
+  --acc: #FF6584;
+  --green: #10B981;
+  --yellow: #F59E0B;
+  --red: #EF4444;
+  --bg: #F4F5FF;
+  --bg2: #EEEEFF;
+  --card: #FFFFFF;
+  --text: #1A1A2E;
+  --muted: #6B7280;
+  --border: #E5E7EB;
+  --sh: 0 4px 30px rgba(108,99,255,0.1);
+  --sh2: 0 12px 40px rgba(108,99,255,0.22);
+  --r: 18px;
+  --r2: 12px;
+  --ease: cubic-bezier(0.4,0,0.2,1);
+}
+[data-theme="dark"] {
+  --bg: #080812;
+  --bg2: #0F0F1E;
+  --card: #13132A;
+  --text: #EEEEFF;
+  --muted: #9CA3AF;
+  --border: #252540;
+  --sh: 0 4px 30px rgba(0,0,0,0.5);
+  --sh2: 0 12px 40px rgba(108,99,255,0.35);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:16px}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+  transition:background .4s,color .4s;
+  cursor:none;
+}
+
+/* ============================================================
+   CUSTOM CURSOR
+============================================================ */
+#cursor{
+  position:fixed;width:12px;height:12px;
+  background:var(--p);border-radius:50%;
+  pointer-events:none;z-index:9999;
+  transform:translate(-50%,-50%);
+  transition:width .2s,height .2s,background .2s,opacity .2s;
+  mix-blend-mode:multiply;
+}
+[data-theme="dark"] #cursor{mix-blend-mode:screen}
+#cursor-ring{
+  position:fixed;width:36px;height:36px;
+  border:1.5px solid rgba(108,99,255,0.5);
+  border-radius:50%;pointer-events:none;
+  z-index:9998;transform:translate(-50%,-50%);
+  transition:width .35s var(--ease),height .35s var(--ease),opacity .3s;
+}
+body:hover #cursor{opacity:1}
+.cursor-grow #cursor{width:22px;height:22px;opacity:.7}
+.cursor-grow #cursor-ring{width:50px;height:50px;opacity:.4}
+
+/* ============================================================
+   3D CANVAS
+============================================================ */
+#bgCanvas{
+  position:fixed;top:0;left:0;
+  width:100%;height:100%;
+  z-index:0;pointer-events:none;
+  opacity:.45;
+}
+[data-theme="dark"] #bgCanvas{opacity:.65}
+
+/* ============================================================
+   SCROLL PROGRESS BAR
+============================================================ */
+#scrollBar{
+  position:fixed;top:0;left:0;
+  height:3px;width:0%;
+  background:linear-gradient(90deg,var(--p),var(--acc));
+  z-index:9997;
+  box-shadow:0 0 8px rgba(108,99,255,0.6);
+  transition:width .1s linear;
+}
+
+/* ============================================================
+   NAVBAR
+============================================================ */
+.navbar{
+  position:fixed;top:0;left:0;right:0;
+  z-index:500;
+  display:flex;align-items:center;gap:1rem;
+  padding:.9rem 2rem;
+  background:rgba(255,255,255,0.75);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid rgba(108,99,255,0.1);
+  box-shadow:0 2px 20px rgba(108,99,255,0.06);
+  transition:background .4s,box-shadow .4s;
+}
+[data-theme="dark"] .navbar{background:rgba(8,8,18,0.8)}
+.navbar.scrolled{box-shadow:0 4px 30px rgba(108,99,255,0.12)}
+.nav-brand{display:flex;align-items:center;gap:.7rem;min-width:150px;text-decoration:none;flex-shrink:0}
+.nav-logo{
+  width:38px;height:38px;flex-shrink:0;
+  animation:logoBob 3s ease-in-out infinite;
+}
+@keyframes logoBob{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-4px) rotate(3deg)}}
+.brand-name{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.2rem;color:var(--p);letter-spacing:-.5px;line-height:1}
+.brand-tag{font-size:.65rem;color:var(--muted);letter-spacing:.3px}
+.nav-links{display:flex;list-style:none;gap:.15rem;flex:1;justify-content:center}
+.nav-link{
+  text-decoration:none;color:var(--muted);font-weight:500;font-size:.88rem;
+  padding:.4rem .85rem;border-radius:8px;
+  transition:color .25s,background .25s;position:relative;
+}
+.nav-link::after{
+  content:'';position:absolute;bottom:2px;left:50%;
+  transform:translateX(-50%) scaleX(0);
+  width:60%;height:2px;background:var(--p);
+  border-radius:2px;transition:transform .25s var(--ease);
+}
+.nav-link:hover,.nav-link.active{color:var(--p);background:rgba(108,99,255,0.07)}
+.nav-link.active::after,.nav-link:hover::after{transform:translateX(-50%) scaleX(1)}
+.nav-right{display:flex;align-items:center;gap:.5rem;min-width:0;justify-content:flex-end;flex-shrink:0}
+.theme-btn{
+  width:42px;height:24px;border-radius:12px;border:none;cursor:none;
+  background:var(--border);position:relative;transition:background .3s;
+  flex-shrink:0;
+}
+.theme-btn.dark-mode{background:var(--p)}
+.theme-btn::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:18px;height:18px;border-radius:50%;
+  background:white;transition:transform .3s var(--ease);
+  box-shadow:0 1px 4px rgba(0,0,0,.2);
+}
+.theme-btn.dark-mode::after{transform:translateX(18px)}
+.btn-primary{
+  background:var(--p);color:#fff;border:none;
+  border-radius:var(--r2);padding:.5rem 1.1rem;
+  font-family:'Nunito',sans-serif;font-weight:800;font-size:.82rem;
+  cursor:none;white-space:nowrap;
+  transition:background .25s,transform .25s,box-shadow .25s;
+  position:relative;overflow:hidden;
+  text-decoration:none;display:inline-flex;align-items:center;gap:.4rem;
+}
+.btn-primary::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,0.2) 50%,transparent 70%);
+  transform:translateX(-100%);transition:.5s;
+}
+.btn-primary:hover::before{transform:translateX(100%)}
+.btn-primary:hover{background:var(--p3);transform:translateY(-1px);box-shadow:0 6px 18px rgba(108,99,255,.35)}
+
+/* ── NAV AVATAR PROFILE BUTTON ── */
+.nav-avatar-btn{
+  display:inline-flex;align-items:center;gap:.5rem;
+  text-decoration:none;padding:.3rem .7rem .3rem .3rem;
+  border-radius:99px;border:1.5px solid var(--border);
+  background:var(--card);
+  transition:border-color .25s,box-shadow .25s,transform .25s,background .25s;
+  position:relative;cursor:none;
+}
+.nav-avatar-btn:hover{border-color:var(--p);box-shadow:0 4px 14px rgba(108,99,255,.2);transform:translateY(-1px);background:rgba(108,99,255,.04)}
+.nav-avatar-ring{
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--p),var(--acc));
+  padding:2px;
+}
+.nav-avatar-inner{
+  width:100%;height:100%;border-radius:50%;overflow:hidden;
+  background:var(--bg2);display:flex;align-items:center;justify-content:center;
+}
+.nav-avatar-inner img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+#navAvatarInitials{font-family:'Nunito',sans-serif;font-weight:900;font-size:.7rem;color:var(--p);line-height:1}
+.nav-avatar-label{font-family:'Nunito',sans-serif;font-weight:700;font-size:.8rem;color:var(--text);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-online-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 0 2px rgba(16,185,129,.25)}
+
+/* ============================================================
+   HERO
+============================================================ */
+.hero{
+  position:relative;text-align:center;
+  padding:7rem 2rem 3.5rem;
+  z-index:1;overflow:hidden;
+  min-height:280px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:.4rem;
+  background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);
+  color:var(--p);font-size:.78rem;font-weight:700;
+  padding:.35rem .9rem;border-radius:99px;margin-bottom:1rem;
+  animation:badgePop .6s var(--ease) .2s both;
+}
+@keyframes badgePop{from{opacity:0;transform:scale(.8) translateY(-10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.hero-title{
+  font-family:'Nunito',sans-serif;font-size:clamp(2rem,5vw,3.2rem);font-weight:900;
+  color:var(--text);letter-spacing:-1.5px;line-height:1.1;
+  animation:heroSlide .7s var(--ease) .3s both;
+}
+.hero-title span{
+  background:linear-gradient(135deg,var(--p),var(--acc));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+@keyframes heroSlide{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.hero-sub{color:var(--muted);font-size:1.05rem;margin-top:.6rem;animation:heroSlide .7s var(--ease) .45s both}
+.hero-privacy{font-size:.82rem;color:var(--muted);margin-top:.4rem;animation:heroSlide .7s var(--ease) .55s both}
+.hero-deco{
+  position:absolute;top:50%;transform:translateY(-50%);
+  width:140px;opacity:.6;pointer-events:none;
+}
+.hero-deco.left{left:4%;animation:decoFloat 5s ease-in-out infinite}
+.hero-deco.right{right:4%;animation:decoFloat 5s ease-in-out infinite;animation-delay:-2.5s}
+@keyframes decoFloat{0%,100%{transform:translateY(-50%)}50%{transform:translateY(calc(-50% - 14px))}}
+
+/* ============================================================
+   MAIN CONTENT GRID
+============================================================ */
+.main-content{
+  display:grid;grid-template-columns:1fr 1.35fr;
+  gap:1.5rem;max-width:1300px;
+  margin:0 auto 2rem;padding:0 2rem;
+  position:relative;z-index:1;
+}
+
+/* ============================================================
+   CARDS
+============================================================ */
+.card{
+  background:var(--card);
+  border-radius:var(--r);
+  padding:1.8rem;
+  box-shadow:var(--sh);
+  border:1px solid var(--border);
+  transition:box-shadow .3s,border-color .3s;
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;inset:0;border-radius:var(--r);
+  background:linear-gradient(135deg,rgba(108,99,255,.03) 0%,transparent 60%);
+  pointer-events:none;
+}
+.card-header{display:flex;align-items:center;gap:1rem;margin-bottom:1.4rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
+.card-icon{
+  width:46px;height:46px;
+  background:linear-gradient(135deg,rgba(108,99,255,.15),rgba(108,99,255,.05));
+  border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(108,99,255,.1);
+}
+.card-title{font-family:'Nunito',sans-serif;font-weight:800;font-size:1.15rem;color:var(--text)}
+.card-subtitle{font-size:.8rem;color:var(--muted);margin-top:2px}
+
+/* ============================================================
+   QUESTIONS
+============================================================ */
+.questions{display:flex;flex-direction:column;gap:1rem}
+.question-item{opacity:0;transform:translateX(-15px)}/* GSAP will animate */
+.question-label{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  font-size:.88rem;font-weight:600;color:var(--text);margin-bottom:.4rem;
+  line-height:1.4;
+}
+.q-num{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:20px;height:20px;border-radius:50%;
+  background:var(--p);color:#fff;font-size:.7rem;font-weight:800;
+  flex-shrink:0;margin-right:.5rem;margin-top:1px;
+}
+.q-info{color:var(--muted);cursor:default;font-size:.85rem;flex-shrink:0;margin-left:.3rem}
+.question-select{
+  width:100%;padding:.65rem 2.5rem .65rem 1rem;
+  border:1.5px solid var(--border);border-radius:var(--r2);
+  background:var(--bg);color:var(--text);
+  font-family:'DM Sans',sans-serif;font-size:.88rem;
+  cursor:none;transition:border .25s,box-shadow .25s,background .25s;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236C63FF' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 1rem center;
+}
+.question-select:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(108,99,255,.12);background:var(--card)}
+.question-select:hover{border-color:var(--p2)}
+.form-disclaimer{
+  font-size:.75rem;color:var(--muted);text-align:center;
+  margin:1.1rem 0 .8rem;padding:.65rem 1rem;
+  background:var(--bg);border-radius:var(--r2);
+  border:1px dashed var(--border);
+}
+.btn-submit{
+  width:100%;padding:.9rem;
+  background:linear-gradient(135deg,var(--p),var(--p3));
+  color:#fff;border:none;border-radius:var(--r2);
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;
+  cursor:none;transition:transform .25s,box-shadow .25s,opacity .25s;
+  position:relative;overflow:hidden;letter-spacing:.3px;
+}
+.btn-submit::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.18) 50%,transparent 70%);
+  transform:translateX(-100%);transition:.6s;
+}
+.btn-submit:hover::after{transform:translateX(100%)}
+.btn-submit:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(108,99,255,.4)}
+.btn-submit:active{transform:translateY(0)}
+.btn-submit.loading{pointer-events:none;opacity:.8}
+.btn-submit.loading::before{
+  content:'';display:inline-block;width:14px;height:14px;
+  border:2px solid rgba(255,255,255,.4);border-top-color:#fff;
+  border-radius:50%;animation:spin .7s linear infinite;
+  margin-right:8px;vertical-align:middle;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ============================================================
+   RESULTS
+============================================================ */
+.results-top{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem;margin-bottom:1.4rem}
+.gauge-section{text-align:center}
+.gauge-label{font-weight:700;font-size:.88rem;color:var(--text);margin-bottom:.4rem}
+.gauge-wrap{position:relative;display:inline-block}
+#gaugeCanvas{display:block}
+.gauge-score{display:flex;flex-direction:column;align-items:center;margin-top:-.3rem}
+.stress-level-text{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.35rem;color:var(--red)}
+.score-text{font-size:.82rem;color:var(--muted);font-weight:600;margin-top:2px}
+.stress-low{color:var(--green)!important}
+.stress-medium{color:var(--yellow)!important}
+.stress-high{color:var(--red)!important}
+.alert-box{
+  background:#FEF2F2;border:1px solid #FECACA;border-radius:var(--r2);
+  padding:.75rem 1rem;font-size:.8rem;color:#7F1D1D;
+  text-align:left;margin-top:.8rem;line-height:1.55;
+}
+[data-theme="dark"] .alert-box{background:#2D1515;border-color:#7F1D1D;color:#FCA5A5}
+.alert-low{background:#F0FDF4!important;border-color:#BBF7D0!important;color:#065F46!important}
+.alert-medium{background:#FFFBEB!important;border-color:#FDE68A!important;color:#78350F!important}
+[data-theme="dark"] .alert-low{background:#0D2B1F!important;color:#6EE7B7!important}
+[data-theme="dark"] .alert-medium{background:#2A1F05!important;color:#FCD34D!important}
+
+.breakdown-title,.tips-title{
+  font-family:'Nunito',sans-serif;font-weight:800;
+  font-size:.95rem;margin-bottom:.7rem;color:var(--text);
+}
+.breakdown-list{display:flex;flex-direction:column;gap:.55rem}
+.breakdown-item{display:flex;flex-direction:column;gap:.18rem}
+.b-row1{display:flex;align-items:center;gap:.4rem}
+.b-row2{display:flex;align-items:center;gap:.5rem}
+.b-icon{font-size:.95rem}
+.b-label{color:var(--text);font-weight:500;font-size:.8rem}
+.b-bar-wrap{flex:1;height:7px;background:var(--border);border-radius:99px;overflow:hidden}
+.b-bar{height:100%;border-radius:99px;width:0;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+.b-score{color:var(--muted);font-size:.75rem;font-weight:700;white-space:nowrap}
+
+.tips-section{margin-bottom:1rem}
+.tips-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.6rem}
+.tip-card{
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);
+  padding:.85rem .4rem;text-align:center;
+  transition:transform .3s var(--ease),box-shadow .3s,border-color .3s;
+  cursor:default;
+}
+.tip-card:hover{transform:translateY(-5px);box-shadow:var(--sh2);border-color:var(--p2)}
+.tip-icon{font-size:1.5rem;margin-bottom:.35rem;display:block}
+.tip-title{font-family:'Nunito',sans-serif;font-weight:800;font-size:.74rem;color:var(--p);margin-bottom:.25rem}
+.tip-desc{font-size:.69rem;color:var(--muted);line-height:1.4}
+.crisis-note{
+  background:rgba(108,99,255,.05);border:1px solid rgba(108,99,255,.15);
+  border-radius:var(--r2);padding:.75rem 1rem;
+  font-size:.78rem;color:var(--muted);
+  display:flex;align-items:center;justify-content:space-between;
+  gap:1rem;flex-wrap:wrap;
+}
+.helpline-link{color:var(--p);font-weight:700;text-decoration:none;white-space:nowrap;transition:color .2s}
+.helpline-link:hover{color:var(--p3);text-decoration:underline}
+
+/* ============================================================
+   PAGE SECTIONS  (scroll-reveal)
+============================================================ */
+.page-section{
+  position:relative;z-index:1;
+  padding:5rem 2rem;scroll-margin-top:72px;
+}
+.alt-bg{background:linear-gradient(180deg,transparent,rgba(108,99,255,.03),transparent)}
+.section-inner{max-width:1100px;margin:0 auto}
+.contact-inner{max-width:680px}
+
+/* Section heading */
+.section-badge{
+  display:inline-flex;align-items:center;gap:.4rem;
+  background:rgba(108,99,255,.08);color:var(--p);
+  font-weight:700;font-size:.78rem;padding:.3rem .9rem;
+  border-radius:99px;margin-bottom:.8rem;
+  border:1px solid rgba(108,99,255,.18);
+}
+.section-title{
+  font-family:'Nunito',sans-serif;font-size:clamp(1.6rem,3vw,2.2rem);
+  font-weight:900;color:var(--text);letter-spacing:-.5px;
+  margin-bottom:.55rem;
+}
+.section-title span{
+  background:linear-gradient(135deg,var(--p),var(--acc));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.section-desc{color:var(--muted);font-size:.95rem;margin-bottom:2rem;max-width:560px;line-height:1.65}
+
+/* About cards */
+.about-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
+.about-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:1.6rem;
+  transition:transform .3s var(--ease),box-shadow .3s,border-color .3s;
+  will-change:transform;
+}
+.about-card:hover{transform:translateY(-6px);box-shadow:var(--sh2);border-color:rgba(108,99,255,.35)}
+.about-icon{font-size:2.2rem;display:block;margin-bottom:.7rem}
+.about-card h3{font-family:'Nunito',sans-serif;font-weight:800;font-size:1rem;margin-bottom:.4rem}
+.about-card p{font-size:.83rem;color:var(--muted);line-height:1.55}
+
+/* Tips full grid */
+.tips-full-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
+.tip-full-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:1.5rem;
+  transition:transform .3s var(--ease),box-shadow .3s,border-color .3s;
+}
+.tip-full-card:hover{transform:translateY(-6px);box-shadow:var(--sh2);border-color:rgba(108,99,255,.35)}
+.tficon{font-size:2rem;display:block;margin-bottom:.6rem}
+.tip-full-card h3{font-family:'Nunito',sans-serif;font-weight:800;font-size:.92rem;color:var(--p);margin-bottom:.4rem}
+.tip-full-card p{font-size:.81rem;color:var(--muted);line-height:1.55}
+
+/* Resources */
+.resources-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
+.resource-card{
+  display:flex;align-items:center;gap:1rem;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:1.2rem 1.4rem;
+  text-decoration:none;color:var(--text);
+  transition:transform .3s var(--ease),box-shadow .3s,border-color .3s;
+}
+.resource-card:hover{transform:translateX(6px);box-shadow:var(--sh2);border-color:var(--p)}
+.r-icon{font-size:1.8rem;flex-shrink:0}
+.resource-card strong{font-size:.9rem;display:block;margin-bottom:2px;color:var(--text)}
+.resource-card p{font-size:.76rem;color:var(--muted);line-height:1.4;margin:0}
+.r-arrow{margin-left:auto;font-size:1.1rem;color:var(--p);flex-shrink:0;transition:transform .25s}
+.resource-card:hover .r-arrow{transform:translate(3px,-3px)}
+
+/* Contact */
+.contact-form{display:flex;flex-direction:column;gap:.8rem}
+.cf-row{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+.cf-input{
+  width:100%;padding:.75rem 1rem;
+  border:1.5px solid var(--border);border-radius:var(--r2);
+  background:var(--card);color:var(--text);
+  font-family:'DM Sans',sans-serif;font-size:.88rem;
+  outline:none;transition:border .25s,box-shadow .25s;
+}
+.cf-input:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(108,99,255,.12)}
+.cf-textarea{min-height:130px;resize:vertical}
+
+/* Stats counter row */
+.stats-row{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1.2rem;margin-bottom:3rem;
+}
+.stat-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:1.5rem;
+  text-align:center;
+  transition:transform .3s var(--ease),box-shadow .3s;
+}
+.stat-card:hover{transform:translateY(-4px);box-shadow:var(--sh2)}
+.stat-num{
+  font-family:'Nunito',sans-serif;font-size:2.2rem;font-weight:900;
+  color:var(--p);line-height:1;
+}
+.stat-label{font-size:.8rem;color:var(--muted);margin-top:.3rem}
+
+/* ============================================================
+   FOOTER
+============================================================ */
+.footer{
+  position:relative;z-index:1;
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:1.6rem 2.5rem;
+  border-top:1px solid var(--border);background:var(--card);flex-wrap:wrap;
+}
+.footer-logo{font-size:.95rem;color:var(--p);font-family:'Nunito',sans-serif;font-weight:800}
+.footer-tag{font-size:.72rem;color:var(--muted);margin-top:2px}
+.footer-copy{font-size:.78rem;color:var(--muted)}
+.footer-links{display:flex;gap:1.2rem}
+.footer-links a{font-size:.78rem;color:var(--muted);text-decoration:none;transition:color .2s}
+.footer-links a:hover{color:var(--p)}
+
+/* ============================================================
+   ANIMATED COUNTER
+============================================================ */
+@keyframes countUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ============================================================
+   REVEAL CLASSES (GSAP sets these)
+============================================================ */
+.reveal{opacity:0;transform:translateY(30px)}
+.reveal-left{opacity:0;transform:translateX(-30px)}
+.reveal-right{opacity:0;transform:translateX(30px)}
+.reveal-scale{opacity:0;transform:scale(.92)}
+
+/* ============================================================
+   GLOWING CARD HOVER (JS adds class)
+============================================================ */
+.glow-card{transition:box-shadow .4s}
+.glow-card.glowing{box-shadow:0 0 30px rgba(108,99,255,.25),var(--sh2)}
+
+/* ============================================================
+   TYPEWRITER CURSOR
+============================================================ */
+.typewriter::after{
+  content:'|';animation:blink .7s step-end infinite;color:var(--p);
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+@media(max-width:1024px){
+  .main-content{grid-template-columns:1fr}
+  .results-top{grid-template-columns:1fr 1fr}
+  .tips-grid{grid-template-columns:repeat(3,1fr)}
+  .about-cards{grid-template-columns:1fr 1fr}
+  .tips-full-grid{grid-template-columns:1fr 1fr}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .nav-avatar-label{display:none}
+  #retakeBtn{display:none}
+}
+@media(max-width:768px){
+  .navbar{padding:.7rem 1rem;flex-wrap:wrap}
+  .nav-links{display:none}
+  .hero-deco{display:none}
+  .hero-title{font-size:1.9rem}
+  .results-top{grid-template-columns:1fr}
+  .tips-grid{grid-template-columns:repeat(2,1fr)}
+  .about-cards,.tips-full-grid,.resources-grid,.stats-row{grid-template-columns:1fr}
+  .footer{flex-direction:column;text-align:center}
+  body{cursor:auto}
+  #cursor,#cursor-ring{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- Custom Cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- Scroll Progress -->
+<div id="scrollBar"></div>
+
+<!-- 3D Background Canvas -->
+<canvas id="bgCanvas"></canvas>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <a class="nav-brand" href="#">
+    <svg class="nav-logo" viewBox="0 0 40 40" fill="none">
+      <circle cx="20" cy="20" r="19" stroke="#6C63FF" stroke-width="2"/>
+      <path d="M14 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="#6C63FF" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="20" cy="14" r="2" fill="#6C63FF"/>
+      <path d="M12 26c1.5-2 4.5-3 8-3s6.5 1 8 3" stroke="#6C63FF" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <div class="brand-name">MindCheck</div>
+      <div class="brand-tag">Understand. Manage. Thrive.</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#home-top" class="nav-link" data-section="home-top">Home</a></li>
+    <li><a href="#check-stress" class="nav-link active" data-section="check-stress">Check Stress</a></li>
+    <li><a href="/insights" class="nav-link">Insights ✨</a></li>
+    <li><a href="#about-section" class="nav-link" data-section="about-section">About</a></li>
+    <li><a href="#tips-section" class="nav-link" data-section="tips-section">Tips</a></li>
+    <li><a href="#resources-section" class="nav-link" data-section="resources-section">Resources</a></li>
+    <li><a href="#contact-section" class="nav-link" data-section="contact-section">Contact</a></li>
+  </ul>
+  <div class="nav-right">
+    <button class="theme-btn" id="themeBtn" title="Toggle theme"></button>
+    <button class="btn-primary" id="retakeBtn">Take Assessment Again</button>
+    <a href="/profile" class="nav-avatar-btn" id="navProfileBtn" title="My Profile">
+      <div class="nav-avatar-ring">
+        <div class="nav-avatar-inner" id="navAvatarInner">
+          <span id="navAvatarInitials">?</span>
+        </div>
+      </div>
+      <span class="nav-avatar-label" id="navAvatarLabel">Profile</span>
+      <span class="nav-online-dot"></span>
+    </a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="check-stress">
+  <div id="home-top" style="position:absolute;top:0"></div>
+  <div class="hero-deco left">
+    <svg viewBox="0 0 120 220" fill="none">
+      <ellipse cx="60" cy="110" rx="52" ry="95" stroke="#6C63FF" stroke-width="1" stroke-opacity=".2"/>
+      <path d="M25 65 Q60 15 95 65 Q130 115 95 155 Q60 200 25 155 Q-5 115 25 65Z" fill="#6C63FF" fill-opacity=".07"/>
+      <circle cx="60" cy="60" r="20" fill="#6C63FF" fill-opacity=".12"/>
+    </svg>
+  </div>
+  <div class="hero-badge">🧠 Free Mental Wellness Assessment</div>
+  <h1 class="hero-title">Mental <span>Stress</span> Check</h1>
+  <p class="hero-sub">Answer a few questions to assess your current mental stress level.</p>
+  <p class="hero-privacy">🛡️ Your responses are private and secure.</p>
+  <div class="hero-deco right">
+    <svg viewBox="0 0 120 220" fill="none">
+      <ellipse cx="60" cy="90" rx="32" ry="58" fill="#6C63FF" fill-opacity=".08"/>
+      <circle cx="60" cy="35" r="24" fill="#FF6584" fill-opacity=".1"/>
+      <path d="M45 82 Q60 94 75 82" stroke="#6C63FF" stroke-width="2" stroke-linecap="round" stroke-opacity=".5"/>
+      <line x1="60" y1="140" x2="60" y2="190" stroke="#6C63FF" stroke-width="2" stroke-opacity=".3"/>
+    </svg>
+  </div>
+</section>
+
+<!-- MAIN CONTENT -->
+<main class="main-content">
+  <!-- FORM CARD -->
+  <div class="card form-card glow-card" id="formCard">
+    <div class="card-header">
+      <div class="card-icon">📋</div>
+      <div>
+        <h2 class="card-title">Assessment Form</h2>
+        <p class="card-subtitle">Please answer the following questions honestly.</p>
+      </div>
+    </div>
+    <div class="questions" id="questions"></div>
+    <div class="form-disclaimer">🔒 This assessment is for informational purposes only and not a substitute for professional medical advice.</div>
+    <button class="btn-submit" id="submitBtn">Submit Assessment</button>
+  </div>
+
+  <!-- RESULTS CARD -->
+  <div class="card results-card glow-card" id="resultsCard">
+    <div class="card-header">
+      <div class="card-icon">📊</div>
+      <div>
+        <h2 class="card-title">Your Results</h2>
+        <p class="card-subtitle">Based on your responses</p>
+      </div>
+    </div>
+    <div class="results-top">
+      <div class="gauge-section">
+        <p class="gauge-label">Your Mental Stress Level</p>
+        <div class="gauge-wrap">
+          <canvas id="gaugeCanvas" width="240" height="140"></canvas>
+          <div class="gauge-score">
+            <span class="stress-level-text stress-high" id="stressLabel">High Stress</span>
+            <span class="score-text" id="scoreText">Score: 78 / 100</span>
+          </div>
+        </div>
+        <div class="alert-box" id="alertBox">
+          ⚠️ Your responses indicate a <strong>high level of stress.</strong> It's important to take steps to manage your stress and take care of your mental well-being.
+        </div>
+      </div>
+      <div class="breakdown-section">
+        <h3 class="breakdown-title">Score Breakdown</h3>
+        <div class="breakdown-list" id="breakdownList"></div>
+      </div>
+    </div>
+    <div class="tips-section">
+      <h3 class="tips-title">What You Can Do</h3>
+      <div class="tips-grid" id="tipsGrid"></div>
+    </div>
+    <div class="crisis-note">
+      <span>ℹ️ <strong>Note:</strong> If you are experiencing severe stress or suicidal thoughts, please seek immediate help.</span>
+      <a href="https://icallhelpline.org" target="_blank" class="helpline-link">Find Helplines ↗</a>
+    </div>
+  </div>
+</main>
+
+<!-- ABOUT SECTION -->
+<section id="about-section" class="page-section">
+  <div class="section-inner">
+    <div class="section-badge reveal">🧠 About Us</div>
+    <h2 class="section-title reveal">What is <span>MindCheck</span>?</h2>
+    <p class="section-desc reveal">MindCheck is a free, anonymous mental stress assessment tool designed to help you understand your current stress levels and take proactive steps toward better mental well-being.</p>
+    <div class="stats-row">
+      <div class="stat-card reveal-scale"><div class="stat-num" data-target="50000">0</div><div class="stat-label">Assessments Taken</div></div>
+      <div class="stat-card reveal-scale"><div class="stat-num" data-target="98">0</div><div class="stat-label">% Privacy Rate</div></div>
+      <div class="stat-card reveal-scale"><div class="stat-num" data-target="7">0</div><div class="stat-label">Stress Indicators</div></div>
+    </div>
+    <div class="about-cards">
+      <div class="about-card reveal-left glow-card"><span class="about-icon">🎯</span><h3>Our Mission</h3><p>To make mental health awareness accessible to everyone, without judgment or barriers.</p></div>
+      <div class="about-card reveal glow-card"><span class="about-icon">🔒</span><h3>Privacy First</h3><p>All responses are private and anonymous. We never store or share your personal data.</p></div>
+      <div class="about-card reveal-right glow-card"><span class="about-icon">📊</span><h3>Science-Based</h3><p>Our assessment is based on validated psychological stress indicators used by professionals.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- TIPS SECTION -->
+<section id="tips-section" class="page-section alt-bg">
+  <div class="section-inner">
+    <div class="section-badge reveal">💡 Tips</div>
+    <h2 class="section-title reveal">Stress <span>Management</span> Tips</h2>
+    <p class="section-desc reveal">Simple, effective strategies to reduce stress and improve your mental well-being every day.</p>
+    <div class="tips-full-grid">
+      <div class="tip-full-card reveal-scale glow-card"><span class="tficon">🌿</span><h3>Deep Breathing</h3><p>Practice 4-7-8 breathing: inhale 4 sec, hold 7, exhale 8. Repeat 4 times daily to calm your nervous system.</p></div>
+      <div class="tip-full-card reveal-scale glow-card"><span class="tficon">🏃</span><h3>Exercise Daily</h3><p>Even a 20-minute walk boosts endorphins and significantly reduces cortisol — your stress hormone.</p></div>
+      <div class="tip-full-card reveal-scale glow-card"><span class="tficon">🛏️</span><h3>Sleep Hygiene</h3><p>Keep a consistent sleep schedule. Avoid screens 1 hour before bed. Aim for 7-9 hours every night.</p></div>
+      <div class="tip-full-card reveal-scale glow-card"><span class="tficon">🧘</span><h3>Mindfulness</h3><p>Spend 10 minutes daily in meditation. Apps like Headspace or Calm can help you get started.</p></div>
+      <div class="tip-full-card reveal-scale glow-card"><span class="tficon">👥</span><h3>Social Support</h3><p>Talk to someone you trust. Sharing your feelings reduces emotional burden and strengthens bonds.</p></div>
+      <div class="tip-full-card reveal-scale glow-card"><span class="tficon">📵</span><h3>Digital Detox</h3><p>Set screen-free hours each day. Social media overload is a major hidden stressor for most people.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- RESOURCES SECTION -->
+<section id="resources-section" class="page-section">
+  <div class="section-inner">
+    <div class="section-badge reveal">📚 Resources</div>
+    <h2 class="section-title reveal">Helpful <span>Resources</span></h2>
+    <p class="section-desc reveal">Trusted links and tools to support your mental health journey.</p>
+    <div class="resources-grid">
+      <a href="https://www.who.int/news-room/fact-sheets/detail/mental-health-strengthening-our-response" target="_blank" class="resource-card reveal-left glow-card"><span class="r-icon">🌐</span><div><strong>WHO Mental Health</strong><p>World Health Organization's official mental health resources and guidance.</p></div><span class="r-arrow">↗</span></a>
+      <a href="https://icallhelpline.org" target="_blank" class="resource-card reveal-right glow-card"><span class="r-icon">📞</span><div><strong>iCall Helpline</strong><p>Free psychological counselling service by TISS for individuals in distress.</p></div><span class="r-arrow">↗</span></a>
+      <a href="https://www.nimhans.ac.in" target="_blank" class="resource-card reveal-left glow-card"><span class="r-icon">🏥</span><div><strong>NIMHANS India</strong><p>National Institute of Mental Health and Neurosciences — India's premier mental health body.</p></div><span class="r-arrow">↗</span></a>
+      <a href="https://www.headspace.com" target="_blank" class="resource-card reveal-right glow-card"><span class="r-icon">🧘</span><div><strong>Headspace</strong><p>Guided meditation and mindfulness app to help manage stress and anxiety.</p></div><span class="r-arrow">↗</span></a>
+      <a href="https://www.helpguide.org/articles/stress/stress-management.htm" target="_blank" class="resource-card reveal-left glow-card"><span class="r-icon">📖</span><div><strong>HelpGuide</strong><p>Comprehensive articles on stress management written by mental health experts.</p></div><span class="r-arrow">↗</span></a>
+      <a href="https://vandrevala.org" target="_blank" class="resource-card reveal-right glow-card"><span class="r-icon">💬</span><div><strong>Vandrevala Foundation</strong><p>24/7 mental health helpline available across India — call 1860-2662-345.</p></div><span class="r-arrow">↗</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT SECTION -->
+<section id="contact-section" class="page-section alt-bg">
+  <div class="section-inner contact-inner">
+    <div class="section-badge reveal">📩 Contact</div>
+    <h2 class="section-title reveal">Get In <span>Touch</span></h2>
+    <p class="section-desc reveal">Have a question, suggestion, or just want to say hi? We'd love to hear from you.</p>
+    <div class="contact-form reveal">
+      <div class="cf-row">
+        <input class="cf-input" type="text" placeholder="Your Name" id="cfName"/>
+        <input class="cf-input" type="email" placeholder="Your Email" id="cfEmail"/>
+      </div>
+      <input class="cf-input" type="text" placeholder="Subject" id="cfSubject"/>
+      <textarea class="cf-input cf-textarea" placeholder="Your Message..." id="cfMessage"></textarea>
+      <button class="btn-submit" id="cfSubmit" style="max-width:200px">Send Message ✉️</button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div>
+    <div class="footer-logo">🧠 MindCheck</div>
+    <div class="footer-tag">Your mental well-being matters.</div>
+  </div>
+  <div class="footer-copy">© 2024 MindCheck. All rights reserved.</div>
+  <div class="footer-links">
+    <a href="#">Privacy Policy</a>
+    <a href="#">Terms of Use</a>
+    <a href="#">Disclaimer</a>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   DATA
+============================================================ */
+const QUESTIONS=[
+  {id:'q1',text:'How often have you felt nervous or stressed in the last 2 weeks?',key:'emotional',options:['Never','Rarely','Sometimes','Often','Very Often']},
+  {id:'q2',text:'How would you rate your sleep quality?',key:'sleep',options:['Excellent','Good','Fair','Poor','Very Poor'],reverse:true},
+  {id:'q3',text:'How often do you feel overwhelmed by your daily tasks?',key:'overwhelm',options:['Never','Rarely','Sometimes','Often','Very Often']},
+  {id:'q4',text:'How would you describe your mood in general?',key:'mood',options:['Excellent','Good','Fair','Low / Sad','Very Low'],reverse:true},
+  {id:'q5',text:'How often do you experience headaches or body tension?',key:'physical',options:['Never','Rarely','Sometimes','Often','Very Often']},
+  {id:'q6',text:'How is your ability to concentrate on tasks?',key:'concentration',options:['Excellent','Good','Fair','Poor','Very Poor'],reverse:true},
+  {id:'q7',text:'How often do you feel irritable or easily annoyed?',key:'irritability',options:['Never','Rarely','Sometimes','Often','Very Often']}
+];
+const BREAKDOWN_META=[
+  {key:'emotional',label:'Emotional Stress',icon:'😮'},
+  {key:'sleep',label:'Sleep Quality',icon:'🌙'},
+  {key:'overwhelm',label:'Overwhelm',icon:'🌊'},
+  {key:'mood',label:'Mood',icon:'😔'},
+  {key:'physical',label:'Physical Symptoms',icon:'❤️'},
+  {key:'concentration',label:'Concentration',icon:'🎯'},
+  {key:'irritability',label:'Irritability',icon:'😤'}
+];
+const TIPS=[
+  {icon:'🌿',title:'Relax & Breathe',desc:'Practice deep breathing or meditation daily.'},
+  {icon:'🛏️',title:'Improve Sleep',desc:'Maintain a regular sleep schedule and avoid screen time before bed.'},
+  {icon:'🏃',title:'Stay Active',desc:'Engage in regular physical activity to boost mood.'},
+  {icon:'👥',title:'Talk to Someone',desc:'Share your feelings with a trusted friend or family member.'},
+  {icon:'📖',title:'Seek Help',desc:'If stress persists, consider speaking to a professional.'}
+];
+
+/* ============================================================
+   CUSTOM CURSOR
+============================================================ */
+const cur=document.getElementById('cursor');
+const curRing=document.getElementById('cursor-ring');
+let cx=0,cy=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{cx=e.clientX;cy=e.clientY});
+function animCursor(){
+  rx+=(cx-rx)*.18;ry+=(cy-ry)*.18;
+  if(cur){cur.style.left=cx+'px';cur.style.top=cy+'px'}
+  if(curRing){curRing.style.left=rx+'px';curRing.style.top=ry+'px'}
+  requestAnimationFrame(animCursor);
+}
+animCursor();
+document.querySelectorAll('a,button,select,.tip-card,.about-card,.resource-card,.tip-full-card').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('cursor-grow'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('cursor-grow'));
+});
+
+/* ============================================================
+   SCROLL PROGRESS
+============================================================ */
+window.addEventListener('scroll',()=>{
+  const pct=window.scrollY/(document.body.scrollHeight-window.innerHeight)*100;
+  document.getElementById('scrollBar').style.width=pct+'%';
+  const nb=document.getElementById('navbar');
+  if(nb) nb.classList.toggle('scrolled',window.scrollY>40);
+});
+
+/* ============================================================
+   THREE.JS 3D BACKGROUND
+============================================================ */
+(function init3D(){
+  if(typeof THREE==='undefined')return;
+  const canvas=document.getElementById('bgCanvas');
+  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,300);
+  camera.position.z=35;
+
+  /* Particles with connecting lines */
+  const N=160;
+  const pts=[];
+  const pPos=new Float32Array(N*3);
+  const pVel=[];
+  for(let i=0;i<N;i++){
+    const x=(Math.random()-.5)*100;
+    const y=(Math.random()-.5)*70;
+    const z=(Math.random()-.5)*50;
+    pPos[i*3]=x;pPos[i*3+1]=y;pPos[i*3+2]=z;
+    pts.push(new THREE.Vector3(x,y,z));
+    pVel.push({x:(Math.random()-.5)*.04,y:(Math.random()-.5)*.04,z:(Math.random()-.5)*.02});
+  }
+  const pGeo=new THREE.BufferGeometry();
+  pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+  const pMat=new THREE.PointsMaterial({color:0x6C63FF,size:.4,transparent:true,opacity:.7});
+  const particles=new THREE.Points(pGeo,pMat);
+  scene.add(particles);
+
+  /* Connection lines geometry (dynamic) */
+  const maxLines=300;
+  const linePos=new Float32Array(maxLines*2*3);
+  const lineGeo=new THREE.BufferGeometry();
+  lineGeo.setAttribute('position',new THREE.BufferAttribute(linePos,3));
+  const lineMat=new THREE.LineSegments(lineGeo,new THREE.LineBasicMaterial({color:0x6C63FF,transparent:true,opacity:.08}));
+  scene.add(lineMat);
+
+  /* Torus rings */
+  const rings=[];
+  [0x6C63FF,0xFF6584,0x43E97B,0xFBBF24,0x6C63FF].forEach((col,i)=>{
+    const g=new THREE.TorusGeometry(4+i*1.5,.07+Math.random()*.08,8,80);
+    const m=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.1+Math.random()*.08});
+    const mesh=new THREE.Mesh(g,m);
+    mesh.position.set((Math.random()-.5)*60,(Math.random()-.5)*40,(Math.random()-.5)*20);
+    mesh.rotation.set(Math.random()*Math.PI,Math.random()*Math.PI,Math.random()*Math.PI);
+    mesh.userData={rx:(Math.random()-.5)*.004,ry:(Math.random()-.5)*.005,rz:(Math.random()-.5)*.003};
+    scene.add(mesh);rings.push(mesh);
+  });
+
+  /* Wireframe ico shapes */
+  const icos=[];
+  for(let i=0;i<8;i++){
+    const g=new THREE.IcosahedronGeometry(.4+Math.random()*1.2,0);
+    const m=new THREE.MeshBasicMaterial({color:0x6C63FF,wireframe:true,transparent:true,opacity:.06+Math.random()*.08});
+    const mesh=new THREE.Mesh(g,m);
+    mesh.position.set((Math.random()-.5)*80,(Math.random()-.5)*55,(Math.random()-.5)*30);
+    mesh.userData={ry:(Math.random()-.5)*.006,rz:(Math.random()-.5)*.004};
+    scene.add(mesh);icos.push(mesh);
+  }
+
+  let mx=0,my=0;
+  window.addEventListener('mousemove',e=>{
+    mx=(e.clientX/innerWidth-.5)*2;
+    my=-(e.clientY/innerHeight-.5)*2;
+  });
+  window.addEventListener('resize',()=>{
+    camera.aspect=innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);
+  });
+
+  let t=0,lineIdx=0;
+  const CONN_DIST=15;
+  function animate(){
+    requestAnimationFrame(animate);
+    t+=.005;
+
+    /* Update particle positions */
+    for(let i=0;i<N;i++){
+      pts[i].x+=pVel[i].x;
+      pts[i].y+=pVel[i].y;
+      pts[i].z+=pVel[i].z;
+      if(Math.abs(pts[i].x)>50){pVel[i].x*=-1}
+      if(Math.abs(pts[i].y)>35){pVel[i].y*=-1}
+      if(Math.abs(pts[i].z)>25){pVel[i].z*=-1}
+      pPos[i*3]=pts[i].x;pPos[i*3+1]=pts[i].y;pPos[i*3+2]=pts[i].z;
+    }
+    pGeo.attributes.position.needsUpdate=true;
+
+    /* Connection lines */
+    lineIdx=0;
+    for(let i=0;i<N&&lineIdx<maxLines-1;i++){
+      for(let j=i+1;j<N&&lineIdx<maxLines-1;j++){
+        const d=pts[i].distanceTo(pts[j]);
+        if(d<CONN_DIST){
+          linePos[lineIdx*6]=pts[i].x;linePos[lineIdx*6+1]=pts[i].y;linePos[lineIdx*6+2]=pts[i].z;
+          linePos[lineIdx*6+3]=pts[j].x;linePos[lineIdx*6+4]=pts[j].y;linePos[lineIdx*6+5]=pts[j].z;
+          lineIdx++;
+        }
+      }
+    }
+    lineGeo.attributes.position.needsUpdate=true;
+    lineGeo.setDrawRange(0,lineIdx*2);
+
+    rings.forEach((r,i)=>{
+      r.rotation.x+=r.userData.rx;r.rotation.y+=r.userData.ry;r.rotation.z+=r.userData.rz;
+      r.position.y+=Math.sin(t+i)*.01;
+    });
+    icos.forEach((m,i)=>{
+      m.rotation.y+=m.userData.ry;m.rotation.z+=m.userData.rz;
+      m.position.y+=Math.cos(t*.8+i*1.4)*.007;
+    });
+
+    camera.position.x+=(mx*3-camera.position.x)*.025;
+    camera.position.y+=(my*2-camera.position.y)*.025;
+    camera.lookAt(scene.position);
+    renderer.render(scene,camera);
+  }
+  animate();
+})();
+
+/* ============================================================
+   BUILD QUESTIONS
+============================================================ */
+function buildQuestions(){
+  const c=document.getElementById('questions');
+  QUESTIONS.forEach((q,i)=>{
+    const div=document.createElement('div');
+    div.className='question-item';
+    div.innerHTML=`
+      <div class="question-label">
+        <span><span class="q-num">${i+1}</span>${q.text}</span>
+        <span class="q-info" title="This helps us assess your stress">ℹ️</span>
+      </div>
+      <select class="question-select" id="${q.id}">
+        <option value="" disabled selected>Select an option...</option>
+        ${q.options.map((o,j)=>`<option value="${j}">${o}</option>`).join('')}
+      </select>`;
+    c.appendChild(div);
+  });
+  /* GSAP stagger reveal */
+  if(typeof gsap!=='undefined'){
+    gsap.to('.question-item',{opacity:1,x:0,duration:.5,stagger:.07,ease:'power2.out',delay:.3});
+  } else {
+    document.querySelectorAll('.question-item').forEach(el=>{el.style.opacity=1;el.style.transform='none'});
+  }
+}
+
+/* ============================================================
+   BUILD BREAKDOWN
+============================================================ */
+function buildBreakdown(){
+  const c=document.getElementById('breakdownList');
+  BREAKDOWN_META.forEach((m,i)=>{
+    const div=document.createElement('div');
+    div.className='breakdown-item';
+    div.innerHTML=`
+      <div class="b-row1"><span class="b-icon">${m.icon}</span><span class="b-label">${m.label}</span></div>
+      <div class="b-row2">
+        <div class="b-bar-wrap"><div class="b-bar" id="bar-${m.key}" style="background:#EF4444"></div></div>
+        <span class="b-score" id="score-${m.key}">– / 100</span>
+      </div>`;
+    c.appendChild(div);
+  });
+}
+
+/* ============================================================
+   BUILD TIPS
+============================================================ */
+function buildTips(){
+  const g=document.getElementById('tipsGrid');
+  TIPS.forEach((t,i)=>{
+    const c=document.createElement('div');
+    c.className='tip-card';
+    c.innerHTML=`<span class="tip-icon">${t.icon}</span><div class="tip-title">${t.title}</div><div class="tip-desc">${t.desc}</div>`;
+    g.appendChild(c);
+  });
+}
+
+/* ============================================================
+   GAUGE
+============================================================ */
+function drawGauge(score){
+  const canvas=document.getElementById('gaugeCanvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const cx=W/2,cy=H-15,r=95;
+
+  /* Shadow */
+  ctx.save();ctx.shadowColor='rgba(108,99,255,.2)';ctx.shadowBlur=12;
+
+  /* Background track */
+  ctx.beginPath();ctx.arc(cx,cy,r,Math.PI,0);
+  ctx.lineWidth=20;ctx.strokeStyle='#E5E7EB';ctx.stroke();
+  ctx.restore();
+
+  /* Colored segments */
+  [[Math.PI,Math.PI*1.33,'#10B981'],[Math.PI*1.33,Math.PI*1.66,'#F59E0B'],[Math.PI*1.66,Math.PI*2,'#EF4444']].forEach(([s,e,col])=>{
+    ctx.beginPath();ctx.arc(cx,cy,r,s,e);ctx.lineWidth=20;ctx.strokeStyle=col;ctx.lineCap='round';ctx.stroke();
+  });
+
+  /* Needle */
+  const angle=Math.PI+(score/100)*Math.PI;
+  const nl=r-10;
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,.3)';ctx.shadowBlur=6;
+  ctx.beginPath();ctx.moveTo(cx,cy);
+  ctx.lineTo(cx+nl*Math.cos(angle),cy+nl*Math.sin(angle));
+  ctx.lineWidth=3.5;ctx.strokeStyle=document.documentElement.getAttribute('data-theme')==='dark'?'#F0F0FF':'#1A1A2E';
+  ctx.lineCap='round';ctx.stroke();
+  ctx.restore();
+
+  /* Center circle */
+  ctx.beginPath();ctx.arc(cx,cy,8,0,Math.PI*2);
+  ctx.fillStyle=document.documentElement.getAttribute('data-theme')==='dark'?'#F0F0FF':'#1A1A2E';ctx.fill();
+}
+
+function animateGauge(target){
+  let cur=0;
+  const step=()=>{cur=Math.min(cur+2,target);drawGauge(cur);if(cur<target)requestAnimationFrame(step)};
+  requestAnimationFrame(step);
+}
+
+function animateBars(scores){
+  BREAKDOWN_META.forEach((m,i)=>{
+    const s=scores[m.key]||0;
+    const b=document.getElementById('bar-'+m.key);
+    const sc=document.getElementById('score-'+m.key);
+    const col=s>66?'#EF4444':s>33?'#F59E0B':'#10B981';
+    if(b){b.style.background=col;setTimeout(()=>b.style.width=s+'%',i*90+200)}
+    if(sc)sc.textContent=s+' / 100';
+  });
+}
+
+/* ============================================================
+   SCORING
+============================================================ */
+function getScore(qi,si){
+  const q=QUESTIONS[qi];const mx=q.options.length-1;
+  return Math.round((q.reverse?(mx-si):si)/mx*100);
+}
+
+/* ============================================================
+   SUBMIT
+============================================================ */
+function handleSubmit(){
+  const btn=document.getElementById('submitBtn');
+  let valid=true;
+  const answers=[];
+  QUESTIONS.forEach((q,i)=>{
+    const sel=document.getElementById(q.id);
+    if(!sel.value){
+      sel.style.borderColor='#EF4444';sel.style.boxShadow='0 0 0 3px rgba(239,68,68,.15)';
+      valid=false;
+      setTimeout(()=>{sel.style.borderColor='';sel.style.boxShadow=''},2500);
+    } else {
+      answers.push(parseInt(sel.value));
+    }
+  });
+  if(!valid){
+    if(typeof gsap!=='undefined') gsap.to(btn,{x:-6,duration:.06,repeat:5,yoyo:true,ease:'power1.inOut'});
+    btn.textContent='⚠️ Please answer all questions!';btn.style.background='#EF4444';
+    setTimeout(()=>{btn.textContent='Submit Assessment';btn.style.background=''},2200);
+    return;
+  }
+  btn.classList.add('loading');btn.textContent=' Analyzing with ML model...';
+
+  fetch('/predict',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({answers:answers})
+  })
+  .then(r=>r.json())
+  .then(data=>{
+    btn.classList.remove('loading');btn.textContent='✅ Assessment Submitted!';btn.style.background='#10B981';
+    updateResults(data.score, data.feature_scores);
+    document.getElementById('resultsCard').scrollIntoView({behavior:'smooth',block:'start'});
+    setTimeout(()=>{btn.textContent='Submit Assessment';btn.style.background=''},3000);
+  })
+  .catch(err=>{
+    console.error('Prediction error:',err);
+    btn.classList.remove('loading');btn.textContent='❌ Server error — retrying locally...';btn.style.background='#EF4444';
+    /* Fallback: compute client-side if server is down */
+    const scores={};let total=0;
+    QUESTIONS.forEach((q,i)=>{
+      const sel=document.getElementById(q.id);
+      if(sel.value){const s=getScore(i,parseInt(sel.value));scores[q.key]=s;total+=s;}
+    });
+    const avg=Math.round(total/7);
+    updateResults(avg,scores);
+    document.getElementById('resultsCard').scrollIntoView({behavior:'smooth',block:'start'});
+    setTimeout(()=>{btn.textContent='Submit Assessment';btn.style.background=''},3000);
+  });
+}
+
+function updateResults(score,scores){
+  animateGauge(score);
+  const lbl=document.getElementById('stressLabel');
+  const sc=document.getElementById('scoreText');
+  const ab=document.getElementById('alertBox');
+  sc.textContent=`Score: ${score} / 100`;
+  if(score<34){
+    lbl.textContent='Low Stress';lbl.className='stress-level-text stress-low';
+    ab.className='alert-box alert-low';
+    ab.innerHTML='✅ Your responses indicate a <strong>low level of stress.</strong> Keep maintaining your healthy habits!';
+  } else if(score<67){
+    lbl.textContent='Moderate Stress';lbl.className='stress-level-text stress-medium';
+    ab.className='alert-box alert-medium';
+    ab.innerHTML='⚠️ Your responses indicate a <strong>moderate level of stress.</strong> Consider taking steps to manage your stress better.';
+  } else {
+    lbl.textContent='High Stress';lbl.className='stress-level-text stress-high';
+    ab.className='alert-box';
+    ab.innerHTML='🚨 Your responses indicate a <strong>high level of stress.</strong> It\'s important to take steps to manage your stress and take care of your mental well-being.';
+  }
+  animateBars(scores);
+  if(typeof gsap!=='undefined') gsap.from('#resultsCard',{scale:.97,opacity:.6,duration:.5,ease:'back.out(1.4)'});
+}
+
+/* ============================================================
+   RETAKE
+============================================================ */
+function handleRetake(){
+  QUESTIONS.forEach(q=>{const s=document.getElementById(q.id);if(s)s.value=''});
+  drawGauge(0);
+  BREAKDOWN_META.forEach(m=>{
+    const b=document.getElementById('bar-'+m.key);const s=document.getElementById('score-'+m.key);
+    if(b)b.style.width='0%';if(s)s.textContent='– / 100';
+  });
+  document.getElementById('stressLabel').textContent='—';
+  document.getElementById('stressLabel').className='stress-level-text';
+  document.getElementById('scoreText').textContent='Score: — / 100';
+  document.getElementById('alertBox').className='alert-box';
+  document.getElementById('alertBox').innerHTML='Fill out the form and submit to see your results.';
+  document.getElementById('formCard').scrollIntoView({behavior:'smooth'});
+}
+
+/* ============================================================
+   THEME
+============================================================ */
+function initTheme(){
+  const btn=document.getElementById('themeBtn');
+  const saved=localStorage.getItem('mc-theme')||'light';
+  document.documentElement.setAttribute('data-theme',saved);
+  if(saved==='dark')btn.classList.add('dark-mode');
+  btn.addEventListener('click',()=>{
+    const cur=document.documentElement.getAttribute('data-theme');
+    const next=cur==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    localStorage.setItem('mc-theme',next);
+    btn.classList.toggle('dark-mode',next==='dark');
+    drawGauge(0);
+  });
+}
+
+/* ── NAV AVATAR: fetch profile and populate ── */
+(async function loadNavAvatar(){
+  try{
+    const res=await fetch('/api/profile');
+    if(!res.ok)return;
+    const u=await res.json();
+    if(u.error)return;
+    const initials=((u.first_name||'').charAt(0)+(u.last_name||'').charAt(0)).toUpperCase()||'?';
+    const labelEl=document.getElementById('navAvatarLabel');
+    const initialsEl=document.getElementById('navAvatarInitials');
+    const innerEl=document.getElementById('navAvatarInner');
+    if(labelEl) labelEl.textContent=u.first_name||u.username||'Profile';
+    if(u.avatar_url&&innerEl){
+      innerEl.innerHTML=`<img src="${u.avatar_url}" alt="avatar" onerror="this.parentNode.innerHTML='<span id=navAvatarInitials style=font-family:Nunito,sans-serif;font-weight:900;font-size:.7rem;color:var(--p)>${initials}</span>'">`;
+    } else if(initialsEl){
+      initialsEl.textContent=initials;
+    }
+  }catch(e){}
+})();
+
+
+function initNav(){
+  const sections=['home-top','check-stress','about-section','tips-section','resources-section','contact-section'];
+  document.querySelectorAll('.nav-link[data-section]').forEach(link=>{
+    link.addEventListener('click',e=>{
+      e.preventDefault();
+      const t=document.getElementById(link.dataset.section);
+      if(t) t.scrollIntoView({behavior:'smooth',block:'start'});
+      document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+      link.classList.add('active');
+    });
+  });
+  window.addEventListener('scroll',()=>{
+    let cur='check-stress';
+    sections.forEach(id=>{const el=document.getElementById(id);if(el&&scrollY>=el.offsetTop-130)cur=id});
+    document.querySelectorAll('.nav-link[data-section]').forEach(l=>{
+      l.classList.toggle('active',l.dataset.section===cur);
+    });
+  },{passive:true});
+}
+
+/* ============================================================
+   GSAP SCROLL ANIMATIONS
+============================================================ */
+function initScrollAnimations(){
+  if(typeof gsap==='undefined')return;
+  gsap.registerPlugin(ScrollTrigger);
+
+  /* Generic reveal classes */
+  gsap.utils.toArray('.reveal').forEach(el=>{
+    gsap.to(el,{opacity:1,y:0,duration:.7,ease:'power2.out',
+      scrollTrigger:{trigger:el,start:'top 88%',toggleActions:'play none none none'}
+    });
+  });
+  gsap.utils.toArray('.reveal-left').forEach(el=>{
+    gsap.to(el,{opacity:1,x:0,duration:.7,ease:'power2.out',
+      scrollTrigger:{trigger:el,start:'top 88%',toggleActions:'play none none none'}
+    });
+  });
+  gsap.utils.toArray('.reveal-right').forEach(el=>{
+    gsap.to(el,{opacity:1,x:0,duration:.7,ease:'power2.out',
+      scrollTrigger:{trigger:el,start:'top 88%',toggleActions:'play none none none'}
+    });
+  });
+  gsap.utils.toArray('.reveal-scale').forEach((el,i)=>{
+    gsap.to(el,{opacity:1,scale:1,duration:.6,ease:'back.out(1.5)',delay:i*.05,
+      scrollTrigger:{trigger:el,start:'top 88%',toggleActions:'play none none none'}
+    });
+  });
+
+  /* Parallax on hero decos */
+  gsap.to('.hero-deco.left',{y:-40,ease:'none',
+    scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:1.5}
+  });
+  gsap.to('.hero-deco.right',{y:-60,ease:'none',
+    scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:2}
+  });
+
+  /* Counter animation */
+  document.querySelectorAll('.stat-num[data-target]').forEach(el=>{
+    const target=+el.dataset.target;
+    ScrollTrigger.create({
+      trigger:el,start:'top 85%',
+      onEnter:()=>{
+        gsap.to({val:0},{val:target,duration:1.8,ease:'power1.out',
+          onUpdate:function(){el.textContent=Math.round(this.targets()[0].val).toLocaleString()+(target===98?'%':target===7?'':'+');}
+        });
+      }
+    });
+  });
+}
+
+/* ============================================================
+   GLOW CARD EFFECT (mouse tracking)
+============================================================ */
+function initGlowCards(){
+  document.querySelectorAll('.glow-card').forEach(card=>{
+    card.addEventListener('mousemove',e=>{
+      const r=card.getBoundingClientRect();
+      const x=e.clientX-r.left,y=e.clientY-r.top;
+      const rx2=(y/r.height-.5)*2,ry2=-(x/r.width-.5)*2;
+      card.style.transform=`perspective(1000px) rotateX(${rx2}deg) rotateY(${ry2}deg) translateZ(2px)`;
+      card.style.boxShadow=`${-ry2*1}px ${rx2*1}px 20px rgba(108,99,255,.13)`;
+    });
+    card.addEventListener('mouseleave',()=>{
+      card.style.transform='';card.style.boxShadow='';
+    });
+  });
+}
+
+/* ============================================================
+   CONTACT FORM
+============================================================ */
+function initContact(){
+  const btn=document.getElementById('cfSubmit');
+  if(!btn)return;
+  btn.addEventListener('click',()=>{
+    const n=document.getElementById('cfName').value.trim();
+    const e=document.getElementById('cfEmail').value.trim();
+    const m=document.getElementById('cfMessage').value.trim();
+    if(!n||!e||!m){
+      btn.textContent='⚠️ Fill all fields!';btn.style.background='#EF4444';
+      setTimeout(()=>{btn.textContent='Send Message ✉️';btn.style.background=''},2000);return;
+    }
+    btn.textContent='✅ Message Sent!';btn.style.background='#10B981';
+    ['cfName','cfEmail','cfSubject','cfMessage'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+    setTimeout(()=>{btn.textContent='Send Message ✉️';btn.style.background=''},3000);
+  });
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+document.addEventListener('DOMContentLoaded',()=>{
+  buildQuestions();
+  buildBreakdown();
+  buildTips();
+  drawGauge(0);
+  initTheme();
+  initNav();
+  initScrollAnimations();
+  initGlowCards();
+  initContact();
+  document.getElementById('submitBtn').addEventListener('click',handleSubmit);
+  document.getElementById('retakeBtn').addEventListener('click',handleRetake);
+});
+</script>
+</body>
+</html>
