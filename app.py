@@ -783,9 +783,205 @@ def register():
     except Exception as e:
         return jsonify({'success': False, 'message': f'Something went wrong. Please try again.'})
 
+# ── /docs — Live API status dashboard ───────────────────────
+@app.route('/docs')
+def docs():
+    import platform, sys
+
+    # Test DB connection
+    db_status = 'connected'
+    db_error  = ''
+    user_count = 0
+    assessment_count = 0
+    try:
+        conn = get_db()
+        cur  = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM users")
+        user_count = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM stress_history")
+        assessment_count = cur.fetchone()[0]
+        cur.close(); conn.close()
+    except Exception as e:
+        db_status = 'error'
+        db_error  = str(e)
+
+    # Test Ollama
+    ollama_status = 'unknown'
+    try:
+        import requests as _r
+        r = _r.get(f"{OLLAMA_URL}/api/tags", timeout=3)
+        ollama_status = 'running' if r.status_code == 200 else f'error ({r.status_code})'
+    except Exception:
+        ollama_status = 'offline'
+
+    db_dot = '#10B981' if db_status == 'connected' else '#EF4444'
+    ol_dot = '#10B981' if ollama_status == 'running' else '#F59E0B' if ollama_status == 'unknown' else '#EF4444'
+
+    routes = [
+        ('GET',  '/',                   'Home — Stress Assessment page',          True),
+        ('GET',  '/insights',           'Wellness Insights dashboard',             True),
+        ('GET',  '/profile',            'User Profile page',                       True),
+        ('GET',  '/login-page',         'Login page',                              False),
+        ('GET',  '/register',           'Register / Sign Up page',                 False),
+        ('POST', '/login',              'Authenticate user — returns JSON',        False),
+        ('GET',  '/logout',             'Clear session — redirect to login',       False),
+        ('POST', '/register',           'Create new account — returns JSON',       False),
+        ('POST', '/predict',            'Run ML stress prediction — JSON result',  True),
+        ('GET',  '/api/history',        'Get user assessment history',             True),
+        ('GET',  '/api/insights',       'Get AI wellness insights',                True),
+        ('POST', '/api/ai-advice',      'Get Ollama LLM personalised advice',      True),
+        ('GET',  '/api/profile',        'Get logged-in user profile data',         True),
+        ('POST', '/api/profile/update', 'Update user profile fields',              True),
+        ('GET',  '/docs',               'This page — live API status dashboard',   False),
+    ]
+
+    rows = ''
+    for method, path, desc, auth in routes:
+        mc = {'GET': '#10B981', 'POST': '#6C63FF'}.get(method, '#6B7280')
+        auth_badge = (
+            '<span style="background:rgba(245,158,11,.15);color:#F59E0B;border-radius:99px;'
+            'padding:2px 10px;font-size:.75rem;font-weight:700">&#128274; Auth</span>'
+            if auth else
+            '<span style="background:rgba(16,185,129,.12);color:#10B981;border-radius:99px;'
+            'padding:2px 10px;font-size:.75rem;font-weight:700">Public</span>'
+        )
+        link = (f'<a href="{path}" target="_blank" style="color:#6C63FF;text-decoration:none;'
+                f'font-weight:700;font-family:monospace">{path}</a>'
+                if method == 'GET' else
+                f'<span style="font-family:monospace">{path}</span>')
+        rows += (
+            f'<tr>'
+            f'<td><span style="background:{mc};color:#fff;border-radius:6px;padding:3px 10px;'
+            f'font-size:.78rem;font-weight:800;font-family:monospace">{method}</span></td>'
+            f'<td>{link}</td>'
+            f'<td style="color:var(--muted);font-size:.85rem">{desc}</td>'
+            f'<td>{auth_badge}</td>'
+            f'</tr>'
+        )
+
+    html = f"""<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>MindCheck \u2014 API Docs</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{{--p:#6C63FF;--p3:#4A42CC;--bg:#F4F5FF;--card:#FFFFFF;--text:#1A1A2E;--muted:#6B7280;--border:#E5E7EB;--sh:0 4px 30px rgba(108,99,255,.1);--sh2:0 12px 40px rgba(108,99,255,.22);--r:18px;--r2:12px}}
+[data-theme=dark]{{--bg:#080812;--card:#13132A;--text:#EEEEFF;--muted:#9CA3AF;--border:#252540;--sh:0 4px 30px rgba(0,0,0,.5)}}
+*,*::before,*::after{{box-sizing:border-box;margin:0;padding:0}}
+body{{font-family:"DM Sans",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem;transition:background .3s,color .3s}}
+.wrap{{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:1.4rem}}
+.card{{background:var(--card);border-radius:var(--r);padding:1.8rem;box-shadow:var(--sh);border:1px solid var(--border)}}
+.badge{{display:inline-flex;align-items:center;gap:.4rem;background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);color:var(--p);font-size:.78rem;font-weight:700;padding:.3rem .9rem;border-radius:99px;margin-bottom:.8rem}}
+h1{{font-family:"Nunito",sans-serif;font-weight:900;font-size:2rem;letter-spacing:-1px;margin-bottom:.3rem}}
+h1 span{{background:linear-gradient(135deg,#6C63FF,#FF6584);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}}
+.sub{{color:var(--muted);font-size:.95rem;margin-bottom:1.4rem;line-height:1.6}}
+.status-grid{{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}}
+.stat{{background:var(--bg);border:1px solid var(--border);border-radius:var(--r2);padding:1.2rem;text-align:center;transition:transform .25s,box-shadow .25s}}
+.stat:hover{{transform:translateY(-4px);box-shadow:var(--sh2)}}
+.stat-num{{font-family:"Nunito",sans-serif;font-weight:900;font-size:1.8rem;color:var(--p)}}
+.stat-label{{font-size:.78rem;color:var(--muted);margin-top:.2rem}}
+.dot{{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:.4rem;vertical-align:middle}}
+table{{width:100%;border-collapse:collapse}}
+th{{text-align:left;font-size:.75rem;font-weight:700;color:var(--muted);padding:.6rem 1rem;border-bottom:2px solid var(--border);text-transform:uppercase;letter-spacing:.5px}}
+td{{padding:.75rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle}}
+tr:last-child td{{border-bottom:none}}
+tr:hover td{{background:rgba(108,99,255,.03)}}
+.section-title{{font-family:"Nunito",sans-serif;font-weight:800;font-size:1.05rem;margin-bottom:1rem}}
+.info-grid{{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}}
+.info-row{{display:flex;justify-content:space-between;align-items:center;padding:.6rem .9rem;background:var(--bg);border-radius:var(--r2);font-size:.85rem}}
+.info-key{{color:var(--muted);font-weight:600}}
+.info-val{{font-weight:700;color:var(--text);font-family:monospace;font-size:.82rem}}
+.back-btn{{display:inline-flex;align-items:center;gap:.5rem;background:var(--p);color:#fff;border:none;border-radius:var(--r2);padding:.5rem 1.2rem;font-family:"Nunito",sans-serif;font-weight:800;font-size:.85rem;text-decoration:none;transition:background .2s,transform .2s;margin-right:.6rem}}
+.back-btn:hover{{background:var(--p3);transform:translateY(-1px)}}
+.theme-btn{{position:fixed;top:1.2rem;right:1.5rem;width:42px;height:24px;border-radius:12px;border:none;cursor:pointer;background:#E5E7EB;transition:background .3s}}
+.theme-btn.dark{{background:#6C63FF}}
+.theme-btn::after{{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform .3s;box-shadow:0 1px 4px rgba(0,0,0,.2)}}
+.theme-btn.dark::after{{transform:translateX(18px)}}
+code{{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:1px 6px;font-size:.82rem}}
+@media(max-width:700px){{.status-grid{{grid-template-columns:1fr 1fr}}.info-grid{{grid-template-columns:1fr}}}}
+</style>
+</head>
+<body>
+<button class="theme-btn" id="tb"></button>
+<div class="wrap">
+  <div class="card">
+    <div class="badge">&#128214; Live API Docs</div>
+    <h1>MindCheck <span>API Status</span></h1>
+    <p class="sub">All services on a <strong>single Flask process</strong> at
+      <code>http://localhost:5000</code> &mdash; frontend pages and backend API share the same port.</p>
+    <a href="/" class="back-btn">&#127968; Home</a>
+    <a href="/login-page" class="back-btn" style="background:#10B981">&#128274; Login</a>
+  </div>
+  <div class="status-grid">
+    <div class="stat"><div class="stat-num">5000</div><div class="stat-label">&#127760; Port</div></div>
+    <div class="stat">
+      <div class="stat-num" style="color:{db_dot};font-size:1.3rem">
+        <span class="dot" style="background:{db_dot}"></span>{'OK' if db_status == 'connected' else 'ERR'}
+      </div>
+      <div class="stat-label">&#128451; MySQL</div>
+    </div>
+    <div class="stat"><div class="stat-num">{user_count}</div><div class="stat-label">&#128100; Users</div></div>
+    <div class="stat"><div class="stat-num">{assessment_count}</div><div class="stat-label">&#128203; Assessments</div></div>
+  </div>
+  <div class="card">
+    <div class="section-title">&#9881;&#65039; Server Info</div>
+    <div class="info-grid">
+      <div class="info-row"><span class="info-key">Base URL</span><span class="info-val">http://localhost:5000</span></div>
+      <div class="info-row"><span class="info-key">Python</span><span class="info-val">{sys.version.split()[0]}</span></div>
+      <div class="info-row"><span class="info-key">Platform</span><span class="info-val">{platform.system()} {platform.release()}</span></div>
+      <div class="info-row"><span class="info-key">Debug Mode</span><span class="info-val">{str(app.debug)}</span></div>
+      <div class="info-row"><span class="info-key">Database</span><span class="info-val">{DB_CONFIG['database']}@{DB_CONFIG['host']}</span></div>
+      <div class="info-row"><span class="info-key">DB Status</span>
+        <span class="info-val" style="color:{db_dot}"><span class="dot" style="background:{db_dot}"></span>{db_status}{' &mdash; ' + db_error if db_error else ''}</span></div>
+      <div class="info-row"><span class="info-key">Ollama URL</span><span class="info-val">{OLLAMA_URL}</span></div>
+      <div class="info-row"><span class="info-key">Ollama Model</span><span class="info-val">{OLLAMA_MODEL}</span></div>
+      <div class="info-row"><span class="info-key">Ollama</span>
+        <span class="info-val" style="color:{ol_dot}"><span class="dot" style="background:{ol_dot}"></span>{ollama_status}</span></div>
+      <div class="info-row"><span class="info-key">ML Model</span><span class="info-val">stress_model.pkl &#9989;</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="section-title">&#128268; All Routes &mdash; {len(routes)} endpoints</div>
+    <table>
+      <thead><tr><th>Method</th><th>Path</th><th>Description</th><th>Access</th></tr></thead>
+      <tbody>{rows}</tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="section-title">&#128203; Notes</div>
+    <p style="font-size:.88rem;color:var(--muted);line-height:1.75">
+      &#128274; Endpoints marked <strong style="color:#F59E0B">Auth</strong> require an active login session.
+      Hitting them directly in the browser returns <code>401</code> &mdash; that is correct.<br/>
+      &#128161; Log in first at <a href="/login-page" style="color:#6C63FF;font-weight:700">/login-page</a> and all protected routes work normally.<br/>
+      &#128683; <code>POST</code> endpoints cannot be opened in the browser &mdash; use the app UI or Postman.
+    </p>
+  </div>
+</div>
+<script>
+(function(){{
+  var btn=document.getElementById('tb');
+  var saved=localStorage.getItem('mc-theme')||'light';
+  document.documentElement.setAttribute('data-theme',saved);
+  btn.classList.toggle('dark',saved==='dark');
+  btn.addEventListener('click',function(){{
+    var cur=document.documentElement.getAttribute('data-theme');
+    var next=cur==='dark'?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    localStorage.setItem('mc-theme',next);
+    btn.classList.toggle('dark',next==='dark');
+  }});
+}})();
+</script>
+</body></html>"""
+    return html
+
+
 if __name__ == '__main__':
     init_db()
     print("=" * 50)
-    print("MindCheck ML Backend running at http://localhost:5000")
+    print("MindCheck ML Backend  →  http://localhost:5000")
+    print("API Docs              →  http://localhost:5000/docs")
     print("=" * 50)
     app.run(debug=True, port=5000)
