@@ -134,7 +134,7 @@ def init_db():
             id INT AUTO_INCREMENT PRIMARY KEY,
             first_name VARCHAR(100) NOT NULL,
             last_name VARCHAR(100) NOT NULL,
-            email VARCHAR(255) NOT NULL,
+            email VARCHAR(255) NOT NULL UNIQUE,
             username VARCHAR(100) NOT NULL UNIQUE,
             password VARCHAR(255) NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -147,6 +147,13 @@ def init_db():
             cursor.execute(f"ALTER TABLE users ADD COLUMN {col} {coldef}")
         except mysql.connector.Error:
             pass  # Column already exists
+
+    # Add UNIQUE constraint on email if not already present (for existing databases)
+    try:
+        cursor.execute("ALTER TABLE users ADD CONSTRAINT uq_users_email UNIQUE (email)")
+        conn.commit()
+    except mysql.connector.Error:
+        pass  # Constraint already exists
 
     # Stress history table for longitudinal tracking
     cursor.execute("""
@@ -363,7 +370,20 @@ def update_profile():
         return jsonify({'error': 'No valid fields to update'}), 400
     try:
         conn = get_db()
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
+
+        # If email is being updated, check it isn't already taken by another account
+        if 'email' in updates and updates['email']:
+            cursor.execute(
+                "SELECT id FROM users WHERE email = %s AND id != %s",
+                (updates['email'], user_id)
+            )
+            rows = cursor.fetchall()  # consume all rows
+            if rows:
+                cursor.close()
+                conn.close()
+                return jsonify({'error': 'This email is already used by another account.'}), 409
+
         set_clause = ', '.join(f"{k} = %s" for k in updates)
         vals = list(updates.values()) + [user_id]
         cursor.execute(f"UPDATE users SET {set_clause} WHERE id = %s", vals)
@@ -371,6 +391,8 @@ def update_profile():
         cursor.close()
         conn.close()
         return jsonify({'success': True})
+    except mysql.connector.IntegrityError:
+        return jsonify({'error': 'This email is already used by another account.'}), 409
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -727,7 +749,24 @@ def register():
 
     try:
         conn = get_db()
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
+
+        # Check for duplicate username or email before inserting
+        cursor.execute(
+            "SELECT id, username, email FROM users WHERE username = %s OR email = %s",
+            (username, email)
+        )
+        existing_rows = cursor.fetchall()  # consume ALL rows to avoid "Unread result found"
+
+        if existing_rows:
+            cursor.close()
+            conn.close()
+            # Check what exactly matched
+            for row in existing_rows:
+                if row['username'] == username:
+                    return jsonify({'success': False, 'message': 'Username already taken. Please choose a different username.'})
+            return jsonify({'success': False, 'message': 'An account with this email already exists. Please log in or use a different email.'})
+
         cursor.execute(
             "INSERT INTO users (first_name, last_name, email, username, password) VALUES (%s, %s, %s, %s, %s)",
             (first_name, last_name, email, username, hashed)
@@ -736,11 +775,13 @@ def register():
         cursor.close()
         conn.close()
         return jsonify({'success': True})
-    except mysql.connector.IntegrityError:
-        return jsonify({'success': False, 'message': 'Username already taken. Choose another.'})
+    except mysql.connector.IntegrityError as e:
+        err = str(e).lower()
+        if 'email' in err:
+            return jsonify({'success': False, 'message': 'An account with this email already exists. Please log in or use a different email.'})
+        return jsonify({'success': False, 'message': 'Username already taken. Please choose a different username.'})
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Database error: {str(e)}'})
-
+        return jsonify({'success': False, 'message': f'Something went wrong. Please try again.'})
 
 if __name__ == '__main__':
     init_db()
