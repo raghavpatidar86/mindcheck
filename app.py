@@ -155,6 +155,22 @@ def init_db():
     except mysql.connector.Error:
         pass  # Constraint already exists
 
+    # Contact messages table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS contact_messages (
+            id         INT AUTO_INCREMENT PRIMARY KEY,
+            name       VARCHAR(150) NOT NULL,
+            email      VARCHAR(255) NOT NULL,
+            subject    VARCHAR(255) DEFAULT '',
+            message    TEXT NOT NULL,
+            user_id    INT DEFAULT NULL,
+            is_read    TINYINT(1) DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+        )
+    """)
+    conn.commit()
+
     # Stress history table for longitudinal tracking
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS stress_history (
@@ -726,6 +742,46 @@ Provide your 3 tips now:"""
         return jsonify({'error': f'AI service error: {str(e)}'}), 500
 
 
+# ── Contact Message API ──────────────────────────────────────
+@app.route('/api/contact', methods=['POST'])
+def submit_contact():
+    data = request.get_json(force=True)
+    name    = data.get('name', '').strip()
+    email   = data.get('email', '').strip()
+    subject = data.get('subject', '').strip()
+    message = data.get('message', '').strip()
+
+    # Validation
+    if not name or not email or not message:
+        return jsonify({'success': False, 'message': 'Name, email, and message are required.'}), 400
+    if len(name) > 150:
+        return jsonify({'success': False, 'message': 'Name is too long (max 150 characters).'}), 400
+    if len(subject) > 255:
+        return jsonify({'success': False, 'message': 'Subject is too long (max 255 characters).'}), 400
+    if len(message) > 5000:
+        return jsonify({'success': False, 'message': 'Message is too long (max 5000 characters).'}), 400
+    if '@' not in email or '.' not in email:
+        return jsonify({'success': False, 'message': 'Please enter a valid email address.'}), 400
+
+    # Attach logged-in user_id if available
+    user_id = session.get('user_id')
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute(
+            """INSERT INTO contact_messages (name, email, subject, message, user_id)
+               VALUES (%s, %s, %s, %s, %s)""",
+            (name, email, subject, message, user_id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Your message has been received! We\'ll get back to you soon.'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': 'Something went wrong. Please try again.'}), 500
+
+
 # ── Register ──────────────────────────────────────────────────
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -833,6 +889,7 @@ def docs():
         ('GET',  '/api/profile',        'Get logged-in user profile data',         True),
         ('POST', '/api/profile/update', 'Update user profile fields',              True),
         ('GET',  '/docs',               'This page — live API status dashboard',   False),
+        ('POST', '/api/contact',        'Submit a Get In Touch message',           False),
     ]
 
     rows = ''
